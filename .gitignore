@@ -1,0 +1,12 @@
+# Build and release artifacts are published through GitHub Releases.
+*.exe
+*.msi
+*.zip
+*.7z
+*.apk
+
+# Local/editor files
+.idea/
+.vscode/
+*.swp
+*~
