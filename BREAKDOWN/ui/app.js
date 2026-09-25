@@ -87,3 +87,31 @@ $("form").onsubmit = async event => {
 for (const name of ["login","cancel-login","retry","close","arm","open-target"])
   $(name).onclick = async () => { try { await call(name); } catch (error) { $("notice").textContent = error.message; } };
 call("status");
+let peerInfo = {enabled:false};
+function renderPeer() {
+  $("peer-status").textContent = peerInfo.enabled ? "연결 정보를 휴대폰의 PC 연결 화면에 붙여넣으세요." : "휴대폰 연결이 꺼져 있어요. 켜면 이 앱의 동기화 포트만 같은 서브넷에 허용합니다.";
+  $("peer-enable").disabled = peerInfo.enabled;
+  $("peer-disable").disabled = !peerInfo.enabled;
+  const host = $("peer-address").value;
+  $("peer-copy").disabled = !peerInfo.enabled || !host;
+  $("peer-code").value = peerInfo.enabled && host ? JSON.stringify({version:1,host,port:peerInfo.port,fingerprint:peerInfo.fingerprint,token:peerInfo.token}) : "";
+}
+async function loadPeer(action) {
+  $("peer-error").textContent = "";
+  try {
+    peerInfo = await call(action);
+    $("peer-address").replaceChildren();
+    for (const address of peerInfo.addresses || []) {
+      const option = document.createElement("option"); option.value = address; option.textContent = address; $("peer-address").append(option);
+    }
+    renderPeer();
+  } catch(error) { $("peer-error").textContent = error.message; }
+}
+$("peer-settings").onclick = async () => { await call("modal",{open:"true"}); $("peer-dialog").showModal(); await loadPeer("peer-info"); };
+$("peer-address").onchange = renderPeer;
+$("peer-enable").onclick = () => loadPeer("peer-enable");
+$("peer-disable").onclick = () => loadPeer("peer-disable");
+$("peer-copy").onclick = () => call("peer-copy",{text:$("peer-code").value});
+async function closePeer() { $("peer-dialog").close(); $("peer-code").value=""; peerInfo={enabled:false}; await call("modal",{open:"false"}); }
+$("peer-close").onclick = closePeer;
+$("peer-dialog").addEventListener("cancel",event=>{event.preventDefault(); void closePeer();});

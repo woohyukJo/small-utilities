@@ -10,7 +10,11 @@ app.disableHardwareAcceleration();
 app.setPath('userData', process.env.BREAKDOWN_UI_FIXTURE || path.join(root, '.dev', 'ui-fixture'));
 let state = { ...emptyStatus, connected: true, preview: false, error: '', authenticating: false };
 let win;
+let copiedPairing = '';
 ipcMain.handle('action', (_event, name, args = {}) => {
+  if (name === 'peer-info' || name === 'peer-disable') return {enabled:false};
+  if (name === 'peer-enable') return {enabled:true,version:1,addresses:['192.168.1.2'],port:18431,fingerprint:'a'.repeat(64),token:'A'.repeat(43)};
+  if (name === 'peer-copy') { copiedPairing = args.text; return {ok:true}; }
   if (name === 'set-target-url') {
     const id = conversationIdFromUrl(args.url);
     if (!id) return { ok: false, error: '올바른 대화 주소를 입력하세요.' };
@@ -50,9 +54,16 @@ app.whenReady().then(async () => {
     await publish();
     assert.equal(await run("document.getElementById('count').textContent"), '3');
     assert.equal(await run("document.getElementById('dialog').open"), false, 'unlock does not show a dialog');
+    await run("loadPeer('peer-enable')");
+    const pairing = JSON.parse(await run("document.getElementById('peer-code').value"));
+    assert.equal(pairing.host,'192.168.1.2'); assert.equal(pairing.port,18431); assert.equal(pairing.version,1);
+    await run("document.getElementById('peer-copy').onclick()");
+    assert.equal(JSON.parse(copiedPairing).host,pairing.host);
+    await run("loadPeer('peer-disable')");
+    assert.equal(await run("document.getElementById('peer-code').value"), '');
     fs.mkdirSync(path.join(root, 'artifacts'), { recursive: true });
     fs.writeFileSync(path.join(root, 'artifacts', 'ui-smoke.png'), (await win.webContents.capturePage()).toPNG());
-    console.log('PASS hidden shell: draft preservation, selection errors, onboarding, locked recovery, quiet unlock');
+    console.log('PASS hidden shell: drafts, selection, onboarding, quiet unlock and peer pairing controls');
     app.exit(0);
   } catch (error) { console.error(error); app.exit(1); }
 });

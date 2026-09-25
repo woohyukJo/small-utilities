@@ -30,6 +30,9 @@
   ${EndIf}
 !macroend
 !macro customUnInstall
+  nsExec::ExecToStack '"$SYSDIR\netsh.exe" advfirewall firewall delete rule name="BREAKDOWN local sync"'
+  Pop $0
+  Pop $1
   nsExec::ExecToStack '"$SYSDIR\sc.exe" stop BreakdownGuard'
   Pop $0
   Pop $1

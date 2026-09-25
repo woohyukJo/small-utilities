@@ -13,13 +13,14 @@ internal sealed class GateServer : IDisposable
 {
     private readonly string pipe, sid;
     private readonly GateStore store;
+    private readonly PeerSyncServer peer;
     private readonly CancellationTokenSource stop = new();
     private UiHealth health = new(0, false, 0);
     private DetectionStatus detection = new("not_observed", 0, 0, 0, 0, false, false, 0);
     private long showRequestedAt;
     private readonly string epoch = Guid.NewGuid().ToString("N");
-    public GateServer(string pipe, string sid, string path) { this.pipe = pipe; this.sid = sid; store = new(path); }
-    public void Start() => _ = Accept();
+    public GateServer(string pipe, string sid, string path, int peerPort = PeerSyncServer.DefaultPort) { this.pipe = pipe; this.sid = sid; store = new(path); peer = new(store, Path.GetDirectoryName(Path.GetFullPath(path))!, peerPort); }
+    public void Start() { peer.Restore(); _ = Accept(); }
     private async Task Accept()
     {
         while (!stop.IsCancellationRequested)
@@ -68,6 +69,9 @@ internal sealed class GateServer : IDisposable
                 switch (method)
                 {
                     case "GetGateStatus": result = store.Status(); break;
+                    case "GetPeerSync": result = peer.Info(); break;
+                    case "EnablePeerSync": result = peer.Enable(); break;
+                    case "DisablePeerSync": peer.Disable(); result = peer.Info(); break;
                     case "RequestUiExit": store.RequestUiExit(); result = store.Status(); break;
                     case "Hello": store.ResetEmergency(); result = store.Status(); break;
                     case "SetConversationTarget": store.SetConversationTarget(Text("conversationId")); result = store.Status(); break;
@@ -105,5 +109,5 @@ internal sealed class GateServer : IDisposable
             }
         }
     }
-    public void Dispose() { stop.Cancel(); /* process exit owns DB lifetime; pending clients may still drain */ }
+    public void Dispose() { peer.Dispose(); stop.Cancel(); /* process exit owns DB lifetime; pending clients may still drain */ }
 }

@@ -33,6 +33,7 @@
   <div class="sidebar-bottom">
     <button id="settings" class="quiet" hidden>비밀번호 변경 <span>↗</span></button>
     <button id="emergency" class="quiet">비상 해제 <span>↗</span></button>
+    <button id="peer-settings" class="quiet">휴대폰 연결 <span>↗</span></button>
     <p>한 번 완료하면 오늘은 자유롭게.<br>새 하루는 오전 4시 이후 다음 로그인부터.</p>
     <span class="version">WINDOWS · V0.1.9</span>
   </div>
@@ -54,4 +55,14 @@
   <label id="confirm-label">다시 입력<input id="confirm" type="password" maxlength="1024" autocomplete="off"></label>
   <p id="dialog-error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel" class="secondary">취소</button><button class="primary" type="submit">확인</button></div>
 </form></dialog>
+<dialog id="peer-dialog">
+  <h2>같은 Wi-Fi 휴대폰 연결</h2>
+  <p>이 PC와 같은 로컬 네트워크에서 당일 완료 기록만 공유합니다. 로그인 정보와 대화 내용은 보내지 않습니다.</p>
+  <p id="peer-status"></p>
+  <select id="peer-address" aria-label="PC 네트워크 주소"></select>
+  <textarea id="peer-code" readonly aria-label="휴대폰 연결 정보" rows="5"></textarea>
+  <p id="peer-error" role="alert"></p>
+  <div class="dialog-actions"><button id="peer-enable" class="primary">연결 켜기</button><button id="peer-copy" class="secondary">정보 복사</button></div>
+  <div class="dialog-actions"><button id="peer-disable" class="secondary">연결 끄기</button><button id="peer-close" class="secondary">닫기</button></div>
+</dialog>
 <script src="app.js"></script></body></html>

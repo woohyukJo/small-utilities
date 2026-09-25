@@ -19,6 +19,12 @@ class GateRepository(context: Context) {
     fun listen(listener: () -> Unit) { listeners.add(listener) }
     fun unlisten(listener: () -> Unit) { listeners.remove(listener) }
     fun hasPassword(): Boolean = preferences.contains("passwordHash")
+    fun peerConfiguration(): String? = preferences.getString("peer.config", null)
+    fun setPeerConfiguration(raw: String?) {
+        check(preferences.edit().putString("peer.config", raw).commit())
+    }
+    fun completedDays(): List<String> = ((preferences.getStringSet("completedDays", emptySet()) ?: emptySet()) +
+        engine.persistedState().peerCompletedDays).sortedDescending().take(32)
 
     fun update(action: (GateEngine) -> Unit): GateStatus {
         action(engine)
@@ -40,7 +46,9 @@ class GateRepository(context: Context) {
             put("turns", turns)
             put("peerCompletedDays", JSONArray(state.peerCompletedDays.toList()))
         }
-        check(preferences.edit().putString("state.v1", json.toString()).commit()) { "진행 상태를 저장하지 못했습니다." }
+        val days = (preferences.getStringSet("completedDays", emptySet()) ?: emptySet()).toMutableSet()
+        if (state.unlockReason != null) state.activeDayKey?.let { days.add(it) }
+        check(preferences.edit().putString("state.v1", json.toString()).putStringSet("completedDays", days.sortedDescending().take(32).toSet()).commit()) { "진행 상태를 저장하지 못했습니다." }
         listeners.toList().forEach { it() }
         return engine.status()
     }

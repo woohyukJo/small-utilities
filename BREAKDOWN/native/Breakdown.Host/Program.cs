@@ -42,7 +42,8 @@ internal static class Program
         {
             var sid = WindowsIdentity.GetCurrent().User!.Value;
             using var server = new GateServer(Value(args, "--pipe") ?? "BREAKDOWN-Dev", sid,
-                Path.Combine(Value(args, "--data") ?? Path.Combine(Environment.CurrentDirectory, ".dev"), "gate.db"));
+                Path.Combine(Value(args, "--data") ?? Path.Combine(Environment.CurrentDirectory, ".dev"), "gate.db"),
+                int.TryParse(Value(args, "--peer-port"), out var peerPort) ? peerPort : PeerSyncServer.DefaultPort);
             server.Start();
             Thread.Sleep(Timeout.Infinite);
             return 0;

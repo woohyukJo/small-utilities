@@ -190,6 +190,32 @@ public sealed class GateStore : IDisposable
             transaction.Commit();
         }
     }
+    public bool PeerSyncEnabled { get { lock (sync) return Get("peerSyncEnabled") == "1"; } }
+    public void SetPeerSyncEnabled(bool enabled) { lock (sync) Set("peerSyncEnabled", enabled ? "1" : "0"); }
+    public string PeerSecret()
+    {
+        lock (sync)
+        {
+            var secret = Get("peerSyncSecret");
+            if (secret == "") {
+                secret = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+','-').Replace('/','_');
+                Set("peerSyncSecret", secret);
+            }
+            return secret;
+        }
+    }
+    public string[] CompletedDays()
+    {
+        lock (sync)
+        {
+            using var command = db.CreateCommand();
+            command.CommandText = "SELECT day FROM (SELECT day FROM days WHERE reason IS NOT NULL UNION SELECT day FROM peer_completions) ORDER BY day DESC LIMIT 32";
+            using var reader = command.ExecuteReader();
+            var days = new List<string>();
+            while (reader.Read()) days.Add(reader.GetString(0));
+            return days.ToArray();
+        }
+    }
     public void RequestUiShow()
     {
         lock (sync) Set("uiDismissedFor", "");

@@ -66,6 +66,7 @@ class MainActivity : Activity() {
             settingsContainer.visibility = View.GONE
         } }
         panel.addView(armButton)
+        panel.addView(button("같은 Wi-Fi PC 연결") { pairingDialog() })
         settingsContainer = ScrollView(this).apply { addView(panel) }
         root.addView(settingsContainer, LinearLayout.LayoutParams(-1, dp(280)))
         chat = ChatWebPanel(this, ::acceptSnapshot, { url ->
@@ -127,13 +128,31 @@ class MainActivity : Activity() {
         }
     }
 
+    private fun pairingDialog() {
+        val input = EditText(this).apply { hint = "PC에서 복사한 연결 정보"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE }
+        val sync = (application as BreakdownApplication).peerSync
+        val dialog = AlertDialog.Builder(this).setTitle("같은 Wi-Fi PC 연결")
+            .setMessage(sync.statusText + "\nPC의 BREAKDOWN에서 휴대폰 연결을 켠 뒤 연결 정보를 붙여넣으세요.")
+            .setView(input).setNegativeButton("취소", null)
+            .setNeutralButton("연결 해제") { _, _ -> sync.disconnect() }
+            .setPositiveButton("연결", null).create()
+        dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
+            sync.pair(input.text.toString()) { error ->
+                if (isDestroyed || !dialog.isShowing) return@pair
+                if (error == null) { input.text.clear(); dialog.dismiss(); notice.text = sync.statusText }
+                else { dialog.setMessage(error); dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = true }
+            }
+        } }
+        dialog.show()
+    }
     private fun accessibilityEnabled(): Boolean = (getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager)
         .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).any { it.resolveInfo.serviceInfo.let { info -> info.packageName == packageName && info.name == GateAccessibilityService::class.java.name } }
     private fun attempt(action: () -> Unit) { try { action(); notice.text = "" } catch (error: Exception) { notice.text = error.message ?: "연결 상태를 확인하세요." } }
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun button(label: String, action: () -> Unit) = Button(this).apply { text = label; textSize = 12f; setOnClickListener { action() } }
     private fun row(parent: LinearLayout, vararg buttons: Button) { parent.addView(LinearLayout(this).apply { buttons.forEach { addView(it, LinearLayout.LayoutParams(0,-2,1f)) } }) }
-    override fun onResume() { super.onResume(); GateAccessibilityService.setAppVisible(true); if (::chat.isInitialized) { chat.resumeObservation(); render() } }
+    override fun onResume() { super.onResume(); GateAccessibilityService.setAppVisible(true); (application as BreakdownApplication).peerSync.requestSoon(); if (::chat.isInitialized) { chat.resumeObservation(); render() } }
     override fun onPause() { if (::chat.isInitialized) chat.pauseObservation(); GateAccessibilityService.setAppVisible(false); super.onPause() }
     override fun onDestroy() { repository.unlisten(updateListener); if (::chat.isInitialized) chat.destroyPanel(); super.onDestroy() }
 }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, WebContentsView, ipcMain, session, screen, Tray, Menu, nativeImage, WebContents, dialog } from "electron";
+import { app, BrowserWindow, WebContentsView, ipcMain, session, screen, Tray, Menu, nativeImage, WebContents, dialog, clipboard } from "electron";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import fs from "node:fs";
@@ -461,6 +461,12 @@ ipcMain.handle("action", async (event, action: string, args: Record<string, stri
   try {
     switch (action) {
       case "status": publish(); return {};
+      case "peer-info": return preview ? {enabled:false} : await client.request("GetPeerSync");
+      case "peer-enable":
+        if (preview) throw new Error("설치된 앱에서 휴대폰 연결을 켜세요.");
+        return await client.request("EnablePeerSync");
+      case "peer-disable": return preview ? {enabled:false} : await client.request("DisablePeerSync");
+      case "peer-copy": clipboard.writeText(args.text ?? ""); return {ok:true};
       case "close": if (!locked()) { if (managed) window.hide(); else { quitting = true; app.quit(); } } break;
       case "modal": modal = args.open === "true"; layout(); if (!modal && !preview) await client.request("ResetEmergency"); break;
       case "login":

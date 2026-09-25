@@ -27,6 +27,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Guard build failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Desktop tests failed' }
 & node scripts/ipc-smoke.cjs
 if ($LASTEXITCODE -ne 0) { throw 'Named Pipe integration failed' }
+& node scripts/peer-sync-smoke.cjs
+if ($LASTEXITCODE -ne 0) { throw 'Peer TLS integration failed' }
 foreach ($taskSmoke in @(
   @{Name='dom'; Script='dist/dom-smoke.js'; Variable='BREAKDOWN_DOM_FIXTURE'},
   @{Name='ui'; Script='scripts/ui-smoke.cjs'; Variable='BREAKDOWN_UI_FIXTURE'}
