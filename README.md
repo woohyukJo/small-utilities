@@ -7,5 +7,6 @@
 | Utility | Platform | Download |
 | --- | --- | --- |
 | [MacZipCleaner](MacZipCleaner/) | Windows (x86-64) | [Releases](/woohyukJo/small-utilities/releases) |
+| [BREAKDOWN](BREAKDOWN/) | Windows (x86-64) | [Build instructions](BREAKDOWN/README.md#개발) |
 
 실행 파일은 Git 이력에 포함하지 않고 GitHub Releases로 배포합니다.

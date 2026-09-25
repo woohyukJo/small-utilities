@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
+<title>BREAKDOWN</title><link rel="stylesheet" href="style.css"></head>
+<body>
+<aside>
+  <div class="brand"><span class="brand-mark">B<span>↘</span></span><span>BREAKDOWN<small>MAKE ROOM TO START</small></span></div>
+  <div class="eyebrow">YOUR DAILY CHECK-IN</div>
+  <h1>오늘의 시작을,<br>세 번의 대화로.</h1>
+  <p class="intro">무엇을 할지, 어디서 시작할지.<br>대화의 내용은 당신이 정해요.</p>
+  <section class="progress-card">
+    <div class="progress-heading"><span id="day">오늘의 대화</span><span id="badge">준비 중</span></div>
+    <div class="count"><span id="count">0</span><span class="denominator">/ 3</span></div>
+    <div class="steps"><i id="step1"></i><i id="step2"></i><i id="step3"></i></div>
+    <p id="progress-description">메시지와 답변이 한 쌍이면 1턴이에요.</p>
+  </section>
+  <section class="target-config">
+    <div class="eyebrow">CHATGPT CONVERSATION</div>
+    <p id="target-summary">사용할 대화를 아직 지정하지 않았어요.</p>
+    <input id="target-url" type="url" inputmode="url" autocomplete="off" placeholder="https://chatgpt.com/c/...">
+    <div class="target-actions">
+      <button id="target-save" class="secondary">주소 저장</button>
+      <button id="target-current" class="secondary">현재 대화 선택</button>
+    </div>
+    <p id="target-error" role="alert"></p>
+  </section>
+  <div id="setup" class="setup">
+    <div class="eyebrow">처음 한 번만 준비해요</div>
+    <button id="password" class="secondary">② 비상 비밀번호 설정</button>
+    <p id="test-note">③ 선택한 대화에서 테스트 1턴을 완료하세요.</p>
+    <button id="arm" class="primary" disabled>④ 하루 한 번 잠금 시작</button>
+  </div>
+  <div class="sidebar-bottom">
+    <button id="settings" class="quiet" hidden>비밀번호 변경 <span>↗</span></button>
+    <button id="emergency" class="quiet">비상 해제 <span>↗</span></button>
+    <p>한 번 완료하면 오늘은 자유롭게.<br>새 하루는 오전 4시 이후 다음 로그인부터.</p>
+    <span class="version">WINDOWS · V0.1.9</span>
+  </div>
+</aside>
+<main>
+  <header><div><span class="status-dot"></span><strong>선택한 대화</strong><span id="mode">연결 확인 중</span></div>
+    <div class="actions"><button id="login">로그인 / 다시 연결</button><button id="cancel-login" hidden>로그인 취소</button><button id="retry" title="화면 새로 연결">↻</button><button id="close" title="닫기">×</button></div>
+  </header>
+  <div id="notice" role="status"></div>
+  <div class="chat-placeholder">
+    <div class="placeholder-inner"><span class="spark">✳</span><h2>지금 떠오르는 것부터.</h2><p>이곳에 실제 ChatGPT 대화 화면이 열립니다.<br>답변 세 번이면, 오늘의 문이 열려요.</p><div class="sample-input">오늘은 무엇부터 시작할까? <span>↑</span></div></div>
+  </div>
+  <footer><span>선택한 대화를 이어가고, 오늘 새로 주고받은 메시지만 계산해요.</span><button id="open-target">선택한 대화 열기</button></footer>
+</main>
+<dialog id="dialog"><form id="form">
+  <div class="eyebrow">BREAKDOWN</div><h2 id="dialog-title">비상 비밀번호</h2><p id="dialog-description"></p>
+  <label id="current-label" hidden>기존 비밀번호<input id="current" type="password" autocomplete="off"></label>
+  <label>비밀번호<input id="secret" type="password" maxlength="1024" autocomplete="off" required></label>
+  <label id="confirm-label">다시 입력<input id="confirm" type="password" maxlength="1024" autocomplete="off"></label>
+  <p id="dialog-error" role="alert"></p><div class="dialog-actions"><button type="button" id="cancel" class="secondary">취소</button><button class="primary" type="submit">확인</button></div>
+</form></dialog>
+<script src="app.js"></script></body></html>

@@ -1,0 +1,43 @@
+{
+  "name": "breakdown-desktop",
+  "version": "0.1.9",
+  "private": true,
+  "description": "하루 한 번, ChatGPT와 세 턴.",
+  "main": "dist/main.js",
+  "author": "BREAKDOWN",
+  "license": "UNLICENSED",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test dist/tests/*.test.js",
+    "start": "npm run build && electron . --preview",
+    "dev": "npm run build && electron . --dev",
+    "diagnose": "node scripts/diagnose.cjs",
+    "pack": "npm run build && electron-builder --win dir",
+    "installer": "npm run build && electron-builder --win nsis && node scripts/prune-installers.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "electron": "44.4.5",
+    "electron-builder": "26.15.3",
+    "typescript": "7.0.2"
+  },
+  "build": {
+    "appId": "local.breakdown.desktop",
+    "productName": "BREAKDOWN",
+    "directories": { "output": "release" },
+    "files": ["dist/**/*", "!dist/tests/**/*", "!dist/dom-smoke.js", "!dist/conversation-target*.json", "ui/**/*", "package.json"],
+    "extraResources": [
+      { "from": "artifacts/guard", "to": "guard" },
+      { "from": "docs", "to": "docs" },
+      { "from": "scripts/recover.ps1", "to": "recover.ps1" }
+    ],
+    "win": { "target": "nsis" },
+    "nsis": {
+      "oneClick": false, "perMachine": true,
+      "allowToChangeInstallationDirectory": true,
+      "runAfterFinish": false,
+      "include": "installer/service.nsh",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
