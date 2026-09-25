@@ -3,6 +3,10 @@
 Windows에서 하루 한 번, ChatGPT와 3턴 대화하면 사용 제한을 해제합니다.
 메시지 내용은 평가하지 않습니다. 마침표 하나도 정상 입력입니다.
 
+다운로드: [Windows 0.2.0](https://github.com/woohyukJo/small-utilities/releases/tag/breakdown-v0.2.0) ·
+[Android 0.1.0-alpha1](https://github.com/woohyukJo/small-utilities/releases/tag/breakdown-android-v0.1.0-alpha1).
+Android 설치·빌드와 개발용에서의 전환은 [Android 안내](android/README.md)를 참고하세요.
+
 ## 실행
 
 release의 **BREAKDOWN Setup 0.2.0.exe**를 실행합니다. 설치 마법사의 폴더 선택 화면에서
@@ -78,7 +82,7 @@ Windows 서비스가 이 값을 관리하고 앱은 서비스가 돌려주는 �
   관리자 서비스 중지, 안전 모드, 프로세스 주입, 보안 데스크톱, 물리 접근까지 차단하지 않습니다.
 - 모든 제한 프로세스가 사라진 뒤 복구되기까지의 짧은 틈은 완전히 제거하지 못합니다.
 - 대화 본문은 앱 DB나 로그에 별도 저장하지 않습니다. ChatGPT 자체 기록 정책과 브라우저 캐시는 별개입니다.
-- 모바일과 로컬 동기화는 Android 개발 브랜치에서 검증 중입니다. 수면 연동과 자동 업데이트는 아직 구현하지 않았습니다.
+- 모바일은 Android 알파로 제공하며, 같은 로컬 네트워크 동기화를 지원합니다. 수면 연동·외부 네트워크 동기화·자동 업데이트는 아직 구현하지 않았습니다.
 
 ## 개발
 

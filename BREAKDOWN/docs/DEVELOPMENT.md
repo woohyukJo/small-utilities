@@ -28,7 +28,7 @@ wsl.exe -d Ubuntu --exec git -C /home/mymemeisjo/projects/small-utilities status
 
 Linux에서 빌드할 소스와 의존성은 WSL 파일 시스템 안에 둔다.
 Windows의 node_modules나 SDK를 Linux용 의존성으로 재사용하지 않는다.
-Android 프로젝트는 아직 없으며, SDK가 있다는 사실이 Android 앱 빌드 완료를 의미하지 않는다.
+Android 프로젝트는 `BREAKDOWN/android`에 있으며 Java 17, Gradle 8.10.2, AGP 8.8.2와 Android SDK 35로 빌드한다. 실제 기기 검증 범위는 MOBILE_WORKLOG.md에 기록한다.
 
 ## 작업 사본 간 동기화
 

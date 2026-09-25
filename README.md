@@ -7,7 +7,8 @@
 | Utility | Platform | Download |
 | --- | --- | --- |
 | [MacZipCleaner](MacZipCleaner/) | Windows (x86-64) | [v1.0.0](https://github.com/woohyukJo/small-utilities/releases/tag/maczipcleaner-v1.0.0) |
-| [BREAKDOWN](BREAKDOWN/) | Windows (x86-64) | [v0.1.9](https://github.com/woohyukJo/small-utilities/releases/tag/breakdown-v0.1.9) |
+| [BREAKDOWN Windows](BREAKDOWN/) | Windows (x86-64) | [v0.2.0](https://github.com/woohyukJo/small-utilities/releases/tag/breakdown-v0.2.0) |
+| [BREAKDOWN Android](BREAKDOWN/android/) | Android (alpha) | [v0.1.0-alpha1](https://github.com/woohyukJo/small-utilities/releases/tag/breakdown-android-v0.1.0-alpha1) |
 
 실행 파일은 Git 이력에 포함하지 않고 GitHub Releases로 배포합니다.
 
