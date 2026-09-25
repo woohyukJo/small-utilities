@@ -186,13 +186,19 @@ exports.TurnTracker = TurnTracker;
  return exports; })();
   const snapshot = readChatPage();
   let events = [];
+  let observerId = "";
+  let sequence = 0;
   if (config.conversationId && snapshot.conversationId === config.conversationId) {
     let observer = globalThis.__breakdownMobileObserver;
     if (!observer || observer.scope !== config.scope) {
-      observer = { scope: config.scope, tracker: new TurnTracker(config.pendingUserIds, config.abortedUserIds) };
+      observer = { scope: config.scope, id: globalThis.crypto.randomUUID(), sequence: 0, queue: [], tracker: new TurnTracker(config.pendingUserIds, config.abortedUserIds) };
       globalThis.__breakdownMobileObserver = observer;
     }
-    events = observer.tracker.accept(snapshot);
+    if (config.ackObserver === observer.id) observer.queue = observer.queue.filter(item => item.sequence > config.ackSequence);
+    for (const event of observer.tracker.accept(snapshot)) observer.queue.push({sequence: ++observer.sequence, event});
+    events = observer.queue.map(item => item.event);
+    observerId = observer.id;
+    sequence = observer.sequence;
   }
-  return JSON.stringify({ scope: config.scope, snapshot, events });
+  return JSON.stringify({ scope: config.scope, observerId, sequence, snapshot, events });
 })()

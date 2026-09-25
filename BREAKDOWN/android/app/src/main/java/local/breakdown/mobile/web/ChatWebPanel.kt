@@ -54,10 +54,18 @@ class ChatWebPanel(
     }
     fun currentUrl(): String = web.url ?: ""
     fun setObservationContext(conversationId: String?, scope: String, pendingUserIds: List<String>, abortedUserIds: List<String>) {
+        val previous = JSONObject(contextJson)
         val next = JSONObject().put("conversationId", conversationId ?: JSONObject.NULL).put("scope", scope)
-            .put("pendingUserIds", JSONArray(pendingUserIds)).put("abortedUserIds", JSONArray(abortedUserIds)).toString()
+            .put("pendingUserIds", JSONArray(pendingUserIds)).put("abortedUserIds", JSONArray(abortedUserIds))
+            .put("ackObserver", if (previous.optString("scope") == scope) previous.optString("ackObserver") else "")
+            .put("ackSequence", if (previous.optString("scope") == scope) previous.optLong("ackSequence") else 0).toString()
         if (next == contextJson) return
         contextJson = next; generation++; evaluating = false
+    }
+    fun acknowledgeSnapshot(scope: String, observerId: String, sequence: Long) {
+        val current = JSONObject(contextJson)
+        if (current.optString("scope") != scope) return
+        contextJson = current.put("ackObserver", observerId).put("ackSequence", sequence).toString()
     }
     fun resumeObservation() {
         if (disposed || resumed) return

@@ -21,6 +21,10 @@ cd android
 
 ## 실제 기기 확인
 
+배포 APK에는 `BREAKDOWN_SIGNING_FILE`(PKCS12 경로), `BREAKDOWN_SIGNING_PASSWORD` 환경변수가 필요하며 alias는 `breakdown`이다.
+이 값 없이 release 빌드를 실행하면 실패하도록 구성했다. 현재 개발 환경의 키는 저장소 밖 `~/.local/share/breakdown/signing/`에 보관하며 버전 업데이트 시 같은 키를 사용한다.
+개발용 앱 ID는 `local.breakdown.mobile.dev`, 배포 앱 ID는 `local.breakdown.mobile`로 구분되어 로그인 데이터가 서로 섞이지 않는다.
+
 대상 기기는 Galaxy S26이다. Android WebView 안에서 실제 계정 로그인이 가능한지 먼저 확인하고, 테스트 대화 감지가 확인되기 전에는 일일 사용 제한을 활성화하지 않는다.
 Google 로그인은 임베디드 브라우저 정책으로 거부될 수 있다. 실패한 로그인 흐름을 우회하거나 Chrome 쿠키를 가져오는 기능은 없다.
 

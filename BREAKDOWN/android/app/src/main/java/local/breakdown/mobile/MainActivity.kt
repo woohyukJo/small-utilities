@@ -127,6 +127,7 @@ class MainActivity : Activity() {
                 } }
             }
         }
+        chat.acknowledgeSnapshot(scope, result.getString("observerId"), result.getLong("sequence"))
     }
 
     private fun pairingDialog(prefill: String? = null) {

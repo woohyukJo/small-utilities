@@ -3,4 +3,6 @@
 local.properties
 *.jks
 *.keystore
+*.p12
+*.password
 keystore.properties
