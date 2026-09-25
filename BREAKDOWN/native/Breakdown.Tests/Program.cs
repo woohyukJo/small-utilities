@@ -237,6 +237,30 @@ using (var store = new GateStore(revisionFile))
         "persisted empty target is not resurrected from legacy day and does not clear earned progress");
 
 // Exercise Windows argv parsing using a real child process, without registering services.
+var peerFile = Path.Combine(root, "peer-completion.db");
+using (var store = new GateStore(peerFile))
+{
+    store.SetConversationTarget(targetA); store.SetPassword("peer-test"); store.MarkReady(); store.Arm(before);
+    store.Submit(targetA,"local-peer-u"); store.Complete(targetA,"local-peer-u","local-peer-a",before);
+    store.AcceptPeerCompletion(GateStore.DayAt(after), before);
+    Check(store.Status().Day == GateStore.DayAt(before) && !store.Status().Unlocked && store.Status().Count == 1,
+        "receiving next-day completion preserves active day and local progress");
+    store.AcceptPeerCompletion(GateStore.DayAt(before), before);
+    store.RequestUiExit();
+    store.AcceptPeerCompletion(GateStore.DayAt(before), before);
+    Check(store.Status().Unlocked && store.Status().Reason == "sync" && store.Status().Count == 3 && store.Status().UiDismissed,
+        "same-day peer completion is idempotent and preserves intentional exit");
+}
+using (var store = new GateStore(peerFile))
+{
+    Check(store.Status().Unlocked && store.Status().UiDismissed, "peer completion survives service restart");
+    store.ObserveSession("unlock","peer-next-day",after);
+    Check(store.Status().Day == GateStore.DayAt(after) && store.Status().Unlocked && store.Status().Reason == "sync",
+        "stored next-day proof applies only at explicit session event");
+    store.ObserveSession("unlock","peer-third-day",after.AddDays(1));
+    Check(!store.Status().Unlocked && store.Status().Count == 0, "peer completion never unlocks an uncompleted day");
+}
+
 var runtime = new DirectoryInfo(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory());
 string host = Path.Combine(runtime.Parent!.Parent!.Parent!.FullName, "dotnet.exe");
 string assembly = Assembly.GetExecutingAssembly().Location;

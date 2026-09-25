@@ -38,6 +38,7 @@ class GateRepository(context: Context) {
             put("day", state.activeDayKey ?: JSONObject.NULL)
             put("reason", state.unlockReason?.name ?: JSONObject.NULL)
             put("turns", turns)
+            put("peerCompletedDays", JSONArray(state.peerCompletedDays.toList()))
         }
         check(preferences.edit().putString("state.v1", json.toString()).commit()) { "진행 상태를 저장하지 못했습니다." }
         listeners.toList().forEach { it() }
@@ -72,8 +73,10 @@ class GateRepository(context: Context) {
             GateTurn(turn.getString("conversationId"), turn.getString("userId"),
                 if (turn.isNull("assistantId")) null else turn.getString("assistantId"), TurnState.valueOf(turn.getString("state")))
         }
+        val peerDays = json.optJSONArray("peerCompletedDays") ?: JSONArray()
         return GatePersistentState(json.getBoolean("armed"), optional("conversationId"), json.getLong("revision"),
-            json.getBoolean("ready"), optional("day"), turns, optional("reason")?.let(UnlockReason::valueOf))
+            json.getBoolean("ready"), optional("day"), turns, optional("reason")?.let(UnlockReason::valueOf),
+            (0 until peerDays.length()).map { peerDays.getString(it) }.toSet())
     }
 
     private fun derive(password: CharArray, salt: ByteArray): ByteArray {

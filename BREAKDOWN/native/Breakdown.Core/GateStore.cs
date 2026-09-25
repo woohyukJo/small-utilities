@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using System.Security.Cryptography;
+using System.Globalization;
 
 namespace Breakdown.Core;
 
@@ -21,6 +22,7 @@ public sealed class GateStore : IDisposable
         Exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL;" +
             "CREATE TABLE IF NOT EXISTS settings(k TEXT PRIMARY KEY,v TEXT NOT NULL);" +
             "CREATE TABLE IF NOT EXISTS days(day TEXT PRIMARY KEY,conversation TEXT,reason TEXT,completedAt TEXT);" +
+            "CREATE TABLE IF NOT EXISTS peer_completions(day TEXT PRIMARY KEY);" +
             "CREATE TABLE IF NOT EXISTS turns(day TEXT NOT NULL,conversation TEXT NOT NULL,userId TEXT NOT NULL," +
             "assistantId TEXT,state TEXT NOT NULL,PRIMARY KEY(day,conversation,userId));" +
             "CREATE UNIQUE INDEX IF NOT EXISTS response_identity ON turns(day,conversation,assistantId) WHERE assistantId IS NOT NULL;");
@@ -77,7 +79,7 @@ public sealed class GateStore : IDisposable
                 using var reader = command.ExecuteReader();
                 while (reader.Read()) (reader.GetString(1) == "pending" ? pending : aborted).Add(reader.GetString(0));
             }
-            return new(Get("armed") == "1", Get("hash") != "", conversation != null && Get("ready") == "1", day, Math.Min(count, 3),
+            return new(Get("armed") == "1", Get("hash") != "", conversation != null && Get("ready") == "1", day, reason == "sync" ? 3 : Math.Min(count, 3),
                 reason != null, reason, conversation, pending.ToArray(), emergency, aborted.ToArray(),
                 (Get("armed") != "1" || reason != null) && Get("uiDismissedFor") == UiPeriod, TargetRevision);
         }
@@ -137,16 +139,19 @@ public sealed class GateStore : IDisposable
             if (Target == "" || Get("ready") != "1" || Get("hash") == "")
                 throw new InvalidOperationException("대화 지정, 비밀번호, 테스트 대화 1턴을 먼저 완료하세요.");
             using var transaction = db.BeginTransaction();
-            Set("armed", "1"); ActivateDay(DayAt(now)); transaction.Commit();
+            Set("armed", "1"); ActivateDay(DayAt(now), now); transaction.Commit();
         }
     }
-    private void ActivateDay(string day)
+    private void ActivateDay(string day, DateTimeOffset now)
     {
         string target = Target;
         object? conversation = target == "" ? null : target;
         Exec("INSERT OR IGNORE INTO days(day,conversation) VALUES($d,$c)", ("$d", day), ("$c", conversation));
         Exec("UPDATE days SET conversation=$c WHERE day=$d", ("$c", conversation), ("$d", day));
         Set("activeDay", day); emergency = 0;
+        if (Scalar("SELECT day FROM peer_completions WHERE day=$d", ("$d", day)) != null &&
+            Scalar("SELECT reason FROM days WHERE day=$d", ("$d", day)) is DBNull)
+            Unlock("sync", now);
     }
     public void ObserveSession(string kind, string logonKey, DateTimeOffset now)
     {
@@ -157,7 +162,7 @@ public sealed class GateStore : IDisposable
             if (kind == "logon" && Get("logonKey") == logonKey) return;
             using var transaction = db.BeginTransaction();
             Set("logonKey", logonKey);
-            if (Get("armed") == "1") ActivateDay(DayAt(now));
+            if (Get("armed") == "1") ActivateDay(DayAt(now), now);
             else if (kind == "logon") Set("uiDismissedFor", "");
             transaction.Commit();
         }
@@ -170,6 +175,19 @@ public sealed class GateStore : IDisposable
             if (status.Armed && !status.Unlocked) throw new InvalidOperationException("잠금이 풀린 뒤 종료할 수 있어요.");
             Set("uiDismissedFor", UiPeriod);
             emergency = 0;
+        }
+    }
+    // The future transport authenticates a paired peer before calling this; it is not a public RPC.
+    public void AcceptPeerCompletion(string day, DateTimeOffset now)
+    {
+        if (!DateOnly.TryParseExact(day, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            throw new InvalidOperationException("완료 기록의 날짜를 확인하세요.");
+        lock (sync)
+        {
+            using var transaction = db.BeginTransaction();
+            Exec("INSERT OR IGNORE INTO peer_completions(day) VALUES($d)", ("$d", day));
+            if (Get("armed") == "1" && Day == day && !Status().Unlocked) { Unlock("sync", now); emergency = 0; }
+            transaction.Commit();
         }
     }
     public void RequestUiShow()

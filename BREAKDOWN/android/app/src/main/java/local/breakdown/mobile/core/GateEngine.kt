@@ -27,6 +27,7 @@ object GateTime {
 enum class UnlockReason {
     CONVERSATION,
     EMERGENCY,
+    SYNC,
 }
 
 enum class TurnState {
@@ -54,6 +55,7 @@ data class GatePersistentState(
     val activeDayKey: String? = null,
     val turns: List<GateTurn> = emptyList(),
     val unlockReason: UnlockReason? = null,
+    val peerCompletedDays: Set<String> = emptySet(),
 )
 
 data class GateStatus(
@@ -131,7 +133,7 @@ class GateEngine(persisted: GatePersistentState = GatePersistentState()) {
             armed = true,
             activeDayKey = GateTime.dayKey(now),
             turns = emptyList(),
-            unlockReason = null,
+            unlockReason = if (GateTime.dayKey(now) in state.peerCompletedDays) UnlockReason.SYNC else null,
         )
         emergencyStreak = 0
         return statusUnlocked()
@@ -149,7 +151,7 @@ class GateEngine(persisted: GatePersistentState = GatePersistentState()) {
             state = state.copy(
                 activeDayKey = nextDay,
                 turns = emptyList(),
-                unlockReason = null,
+                unlockReason = if (nextDay in state.peerCompletedDays) UnlockReason.SYNC else null,
             )
             emergencyStreak = 0
         }
@@ -261,13 +263,25 @@ class GateEngine(persisted: GatePersistentState = GatePersistentState()) {
         return statusUnlocked()
     }
 
+    /** Called only after the pairing/transport layer has authenticated a peer's completed-day record. */
+    @Synchronized
+    fun acceptPeerCompletion(dayKey: String): GateStatus {
+        require(LocalDate.parse(dayKey).toString() == dayKey) { "Invalid completion day." }
+        state = state.copy(peerCompletedDays = state.peerCompletedDays + dayKey)
+        if (state.armed && state.activeDayKey == dayKey && state.unlockReason == null) {
+            state = state.copy(unlockReason = UnlockReason.SYNC)
+            emergencyStreak = 0
+        }
+        return statusUnlocked()
+    }
+
     private fun statusUnlocked(): GateStatus = GateStatus(
         armed = state.armed,
         targetConversationId = state.targetConversationId,
         targetRevision = state.targetRevision,
         testReady = state.testReady,
         activeDayKey = state.activeDayKey,
-        completedCount = completedCount().coerceAtMost(REQUIRED_COMPLETED_PAIRS),
+        completedCount = if (state.unlockReason == UnlockReason.SYNC) REQUIRED_COMPLETED_PAIRS else completedCount().coerceAtMost(REQUIRED_COMPLETED_PAIRS),
         unlocked = state.unlockReason != null,
         unlockReason = state.unlockReason,
         emergencyStreak = emergencyStreak,
