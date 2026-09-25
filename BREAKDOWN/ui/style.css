@@ -2,3 +2,4 @@
 .target-config{margin-top:16px}.target-config p{font-size:10px;line-height:1.5;color:#a9c0ba;margin:7px 0}.target-config #target-summary{word-break:break-all;max-height:31px;overflow:hidden}.target-config input{width:100%;padding:9px 10px;border:1px solid #48625f;border-radius:7px;background:#203c40;color:#eef4ee;font-size:10px;outline:none}.target-config input:focus{border-color:#8bad82}.target-actions{display:flex;gap:6px;margin-top:7px}.target-actions button{flex:1;padding:8px 5px;font-size:9px}.target-config #target-error{color:#efb09f;min-height:15px}.setup{margin-top:13px}.sidebar-bottom{padding-top:12px}
 aside{overflow-y:auto}.brand{margin-bottom:30px}
 #peer-code,#peer-address{display:block;width:100%;margin:10px 0;padding:8px;font:12px "Segoe UI",sans-serif}#peer-error{color:#ae5244}
+#peer-qr{display:block;margin:8px auto}

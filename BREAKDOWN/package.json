@@ -1,6 +1,6 @@
 {
   "name": "breakdown-desktop",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "private": true,
   "description": "하루 한 번, ChatGPT와 세 턴.",
   "main": "dist/main.js",
@@ -24,20 +24,44 @@
   "build": {
     "appId": "local.breakdown.desktop",
     "productName": "BREAKDOWN",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "!dist/tests/**/*", "!dist/dom-smoke.js", "!dist/conversation-target*.json", "ui/**/*", "package.json"],
-    "extraResources": [
-      { "from": "artifacts/guard", "to": "guard" },
-      { "from": "docs", "to": "docs" },
-      { "from": "scripts/recover.ps1", "to": "recover.ps1" }
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/tests/**/*",
+      "!dist/dom-smoke.js",
+      "!dist/conversation-target*.json",
+      "ui/**/*",
+      "package.json"
     ],
-    "win": { "target": "nsis" },
+    "extraResources": [
+      {
+        "from": "artifacts/guard",
+        "to": "guard"
+      },
+      {
+        "from": "docs",
+        "to": "docs"
+      },
+      {
+        "from": "scripts/recover.ps1",
+        "to": "recover.ps1"
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
     "nsis": {
-      "oneClick": false, "perMachine": true,
+      "oneClick": false,
+      "perMachine": true,
       "allowToChangeInstallationDirectory": true,
       "runAfterFinish": false,
       "include": "installer/service.nsh",
       "deleteAppDataOnUninstall": false
     }
+  },
+  "dependencies": {
+    "qrcode": "1.5.4"
   }
 }

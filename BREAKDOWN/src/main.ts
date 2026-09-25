@@ -467,6 +467,12 @@ ipcMain.handle("action", async (event, action: string, args: Record<string, stri
         return await client.request("EnablePeerSync");
       case "peer-disable": return preview ? {enabled:false} : await client.request("DisablePeerSync");
       case "peer-copy": clipboard.writeText(args.text ?? ""); return {ok:true};
+      case "peer-qr": {
+        const text = args.text ?? "";
+        if (text.length > 4096) throw new Error("연결 정보가 너무 깁니다.");
+        const qr = require("qrcode") as {toDataURL(value:string, options:object):Promise<string>};
+        return await qr.toDataURL("breakdown://pair?data=" + encodeURIComponent(text), {width:280,margin:1,errorCorrectionLevel:"M"});
+      }
       case "close": if (!locked()) { if (managed) window.hide(); else { quitting = true; app.quit(); } } break;
       case "modal": modal = args.open === "true"; layout(); if (!modal && !preview) await client.request("ResetEmergency"); break;
       case "login":

@@ -88,13 +88,20 @@ for (const name of ["login","cancel-login","retry","close","arm","open-target"])
   $(name).onclick = async () => { try { await call(name); } catch (error) { $("notice").textContent = error.message; } };
 call("status");
 let peerInfo = {enabled:false};
+let peerRenderSerial = 0;
 function renderPeer() {
+  const serial = ++peerRenderSerial;
   $("peer-status").textContent = peerInfo.enabled ? "연결 정보를 휴대폰의 PC 연결 화면에 붙여넣으세요." : "휴대폰 연결이 꺼져 있어요. 켜면 이 앱의 동기화 포트만 같은 서브넷에 허용합니다.";
   $("peer-enable").disabled = peerInfo.enabled;
   $("peer-disable").disabled = !peerInfo.enabled;
   const host = $("peer-address").value;
   $("peer-copy").disabled = !peerInfo.enabled || !host;
   $("peer-code").value = peerInfo.enabled && host ? JSON.stringify({version:1,host,port:peerInfo.port,fingerprint:peerInfo.fingerprint,token:peerInfo.token}) : "";
+  $("peer-qr").hidden = true; $("peer-qr").removeAttribute("src");
+  if ($("peer-code").value) call("peer-qr", {text:$("peer-code").value}).then(url => {
+    if (serial !== peerRenderSerial || typeof url !== "string") return;
+    $("peer-qr").src = url; $("peer-qr").hidden = false;
+  }).catch(() => { if(serial === peerRenderSerial) $("peer-error").textContent = "QR을 만들지 못했어요. 연결 정보 복사를 이용하세요."; });
 }
 async function loadPeer(action) {
   $("peer-error").textContent = "";
@@ -112,6 +119,6 @@ $("peer-address").onchange = renderPeer;
 $("peer-enable").onclick = () => loadPeer("peer-enable");
 $("peer-disable").onclick = () => loadPeer("peer-disable");
 $("peer-copy").onclick = () => call("peer-copy",{text:$("peer-code").value});
-async function closePeer() { $("peer-dialog").close(); $("peer-code").value=""; peerInfo={enabled:false}; await call("modal",{open:"false"}); }
+async function closePeer() { peerRenderSerial++; $("peer-dialog").close(); $("peer-code").value=""; $("peer-qr").hidden=true; $("peer-qr").removeAttribute("src"); peerInfo={enabled:false}; await call("modal",{open:"false"}); }
 $("peer-close").onclick = closePeer;
 $("peer-dialog").addEventListener("cancel",event=>{event.preventDefault(); void closePeer();});

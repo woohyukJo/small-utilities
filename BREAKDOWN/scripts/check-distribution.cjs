@@ -115,6 +115,7 @@ try {
     "ui/index.html",
     "ui/app.js",
     "ui/style.css",
+    "node_modules/qrcode/lib/index.js",
   ];
   for (const requiredEntry of requiredAsarEntries) {
     if (!asarEntrySet.has(requiredEntry)) fail(`required ASAR entry is missing: ${requiredEntry}`);

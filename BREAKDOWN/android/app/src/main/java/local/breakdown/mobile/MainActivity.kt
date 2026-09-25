@@ -79,6 +79,7 @@ class MainActivity : Activity() {
         repository.listen(updateListener)
         settingsContainer.visibility = if (repository.engine.status().armed) View.GONE else View.VISIBLE
         render(); openSelected()
+        offerPairing(intent)
     }
 
     private fun render() {
@@ -128,8 +129,9 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun pairingDialog() {
+    private fun pairingDialog(prefill: String? = null) {
         val input = EditText(this).apply { hint = "PC에서 복사한 연결 정보"; inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE }
+        if (prefill != null) input.setText(prefill)
         val sync = (application as BreakdownApplication).peerSync
         val dialog = AlertDialog.Builder(this).setTitle("같은 Wi-Fi PC 연결")
             .setMessage(sync.statusText + "\nPC의 BREAKDOWN에서 휴대폰 연결을 켠 뒤 연결 정보를 붙여넣으세요.")
@@ -146,6 +148,14 @@ class MainActivity : Activity() {
         } }
         dialog.show()
     }
+    private fun offerPairing(incoming: Intent?) {
+        val uri = incoming?.data ?: return
+        if (uri.scheme != "breakdown" || uri.host != "pair") return
+        val raw = uri.getQueryParameter("data") ?: return
+        if (raw.length <= 8192) pairingDialog(raw)
+        incoming.data = null
+    }
+    override fun onNewIntent(intent: Intent) { super.onNewIntent(intent); setIntent(intent); offerPairing(intent) }
     private fun accessibilityEnabled(): Boolean = (getSystemService(ACCESSIBILITY_SERVICE) as AccessibilityManager)
         .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK).any { it.resolveInfo.serviceInfo.let { info -> info.packageName == packageName && info.name == GateAccessibilityService::class.java.name } }
     private fun attempt(action: () -> Unit) { try { action(); notice.text = "" } catch (error: Exception) { notice.text = error.message ?: "연결 상태를 확인하세요." } }

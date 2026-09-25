@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:label="BREAKDOWN Sync Probe"
+        android:supportsRtl="true" />
+
+    <instrumentation
+        android:name="local.breakdown.syncprobe.PeerProbe"
+        android:targetPackage="local.breakdown.syncprobe"
+        android:functionalTest="true"
+        android:handleProfiling="false" />
+</manifest>

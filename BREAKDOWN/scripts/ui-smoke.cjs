@@ -15,6 +15,7 @@ ipcMain.handle('action', (_event, name, args = {}) => {
   if (name === 'peer-info' || name === 'peer-disable') return {enabled:false};
   if (name === 'peer-enable') return {enabled:true,version:1,addresses:['192.168.1.2'],port:18431,fingerprint:'a'.repeat(64),token:'A'.repeat(43)};
   if (name === 'peer-copy') { copiedPairing = args.text; return {ok:true}; }
+  if (name === 'peer-qr') return require('qrcode').toDataURL('breakdown://pair?data='+encodeURIComponent(args.text));
   if (name === 'set-target-url') {
     const id = conversationIdFromUrl(args.url);
     if (!id) return { ok: false, error: '올바른 대화 주소를 입력하세요.' };
@@ -55,6 +56,8 @@ app.whenReady().then(async () => {
     assert.equal(await run("document.getElementById('count').textContent"), '3');
     assert.equal(await run("document.getElementById('dialog').open"), false, 'unlock does not show a dialog');
     await run("loadPeer('peer-enable')");
+    await run("new Promise((resolve,reject)=>{const img=document.getElementById('peer-qr');const timer=setTimeout(()=>reject(new Error('Pairing QR did not load')),3000);const done=()=>{clearTimeout(timer);resolve()};if(img.complete&&img.naturalWidth>0)done();else img.addEventListener('load',done,{once:true});})");
+    assert.equal(await run("document.getElementById('peer-qr').naturalWidth > 0"), true);
     const pairing = JSON.parse(await run("document.getElementById('peer-code').value"));
     assert.equal(pairing.host,'192.168.1.2'); assert.equal(pairing.port,18431); assert.equal(pairing.version,1);
     await run("document.getElementById('peer-copy').onclick()");

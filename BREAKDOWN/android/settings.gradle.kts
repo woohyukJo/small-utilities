@@ -7,3 +7,4 @@ dependencyResolutionManagement {
 }
 rootProject.name = "BreakdownAndroid"
 include(":app")
+include(":sync-probe")
