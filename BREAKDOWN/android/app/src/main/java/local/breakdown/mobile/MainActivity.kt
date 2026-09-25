@@ -139,6 +139,7 @@ class MainActivity : Activity() {
             .setView(input).setNegativeButton("취소", null)
             .setNeutralButton("연결 해제") { _, _ -> sync.disconnect() }
             .setPositiveButton("연결", null).create()
+        dialog.setOnDismissListener { sync.cancelPairing(); input.text.clear() }
         dialog.setOnShowListener { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).isEnabled = false
             sync.pair(input.text.toString()) { error ->

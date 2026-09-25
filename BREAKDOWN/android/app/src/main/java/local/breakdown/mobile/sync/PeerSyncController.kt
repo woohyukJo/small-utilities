@@ -15,6 +15,7 @@ class PeerSyncController(context: Context, private val gate: GateRepository) {
     private var inFlight = false
     private var scheduled = false
     private var generation = 0L
+    private var pendingPair: Long? = null
     var statusText: String = "PC 연결 안 됨"
         private set
     private val loop = Runnable { scheduled = false; synchronize() }
@@ -25,17 +26,22 @@ class PeerSyncController(context: Context, private val gate: GateRepository) {
         handler.removeCallbacks(loop); scheduled = true; handler.post(loop)
     }
     fun disconnect() {
-        generation++; gate.setPeerConfiguration(null); handler.removeCallbacks(loop); scheduled = false
+        generation++; pendingPair = null; gate.setPeerConfiguration(null); handler.removeCallbacks(loop); scheduled = false
         statusText = "PC 연결 안 됨"
+    }
+    fun cancelPairing() {
+        if (pendingPair == null) return
+        generation++; pendingPair = null; requestSoon()
     }
 
     fun pair(raw: String, callback: (String?) -> Unit) {
         val config = try { PeerConfig.parse(raw) } catch (_: Exception) { callback("PC의 연결 정보를 그대로 붙여넣으세요."); return }
-        generation++; val epoch = generation
+        generation++; val epoch = generation; pendingPair = epoch
         executor.execute {
             val response = runCatching { PeerClient().exchange(config, emptyList()) }
             handler.post {
                 if (epoch != generation) return@post
+                pendingPair = null
                 response.onSuccess { days ->
                     gate.setPeerConfiguration(raw)
                     applyDays(days)

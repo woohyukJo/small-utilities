@@ -53,14 +53,23 @@ class GateRepository(context: Context) {
         return engine.status()
     }
 
-    fun setPassword(password: CharArray, current: CharArray = charArrayOf()) {
+    data class PreparedPassword(val salt: String, val hash: String, val previousHash: String?)
+
+    fun preparePassword(password: CharArray, current: CharArray = charArrayOf()): PreparedPassword {
         require(password.isNotEmpty() && password.size <= 1024) { "비밀번호는 1~1024자로 입력하세요." }
         val status = engine.status()
         check(!status.armed || status.unlocked) { "잠금 해제 후 비밀번호를 변경하세요." }
         if (hasPassword()) require(checkPassword(current)) { "기존 비밀번호를 확인하세요." }
+        val previousHash = preferences.getString("passwordHash", null)
         val salt = ByteArray(16).also { SecureRandom().nextBytes(it) }
         val hash = derive(password, salt)
-        check(preferences.edit().putString("passwordSalt", encode(salt)).putString("passwordHash", encode(hash)).commit())
+        return PreparedPassword(encode(salt), encode(hash), previousHash)
+    }
+    fun commitPassword(prepared: PreparedPassword) {
+        val status = engine.status()
+        check(!status.armed || status.unlocked) { "잠금 해제 후 비밀번호를 변경하세요." }
+        check(preferences.getString("passwordHash", null) == prepared.previousHash) { "비밀번호가 변경됐어요. 다시 확인하세요." }
+        check(preferences.edit().putString("passwordSalt", prepared.salt).putString("passwordHash", prepared.hash).commit())
     }
 
     fun checkPassword(password: CharArray): Boolean {

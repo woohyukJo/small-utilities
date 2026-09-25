@@ -14,7 +14,7 @@ object GatePasswordDialog {
         val current = if (!emergency && repository.hasPassword()) field("기존 비밀번호") else null
         val password = field(if (emergency) "비상 비밀번호" else "새 비밀번호")
         val confirm = if (!emergency) field("새 비밀번호 확인") else null
-        val message = TextView(activity).apply { text = if (emergency) "10회 연속 정확히 입력하면 오늘만 해제됩니다." else "Windows 비밀번호와 별개입니다."; fields.addView(this) }
+        val message = TextView(activity).apply { text = if (emergency) "10회 연속 정확히 입력하면 오늘만 해제됩니다." else "이 앱에서만 사용하는 비상 비밀번호입니다."; fields.addView(this) }
         var busy = false
         val dialog = AlertDialog.Builder(activity).setTitle(if (emergency) "오늘 비상 해제" else "비상 비밀번호 설정")
             .setView(fields).setNegativeButton("취소", null).setPositiveButton("확인", null).create()
@@ -26,19 +26,22 @@ object GatePasswordDialog {
                 busy = true
                 val chars = password.text.toString().toCharArray(); val old = current?.text?.toString()?.toCharArray() ?: charArrayOf()
                 Thread {
-                    val result = runCatching { if (emergency) repository.checkPassword(chars) else { repository.setPassword(chars, old); true } }
+                    val result = runCatching { if (emergency) repository.checkPassword(chars) to null else true to repository.preparePassword(chars, old) }
                     chars.fill('\u0000'); old.fill('\u0000')
                     activity.runOnUiThread {
                         busy = false
                         if (!dialog.isShowing || activity.isDestroyed) return@runOnUiThread
-                        result.onSuccess { correct ->
+                        result.onSuccess { (correct, prepared) ->
                             if (emergency) {
                                 runCatching { repository.update { it.emergencyResult(correct) } }.onSuccess { state ->
                                     password.text.clear()
                                     message.text = if (correct) "연속 ${state.emergencyStreak} / 10회" else "비밀번호가 다릅니다. 횟수가 초기화됐어요."
                                     if (state.unlocked) dialog.dismiss()
                                 }.onFailure { message.text = it.message }
-                            } else { dialog.dismiss(); changed() }
+                            } else {
+                                runCatching { repository.commitPassword(requireNotNull(prepared)) }
+                                    .onSuccess { dialog.dismiss(); changed() }.onFailure { message.text = it.message }
+                            }
                         }.onFailure { message.text = it.message }
                     }
                 }.start()
