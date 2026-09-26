@@ -1,4 +1,4 @@
-import { conversationIdFromUrl } from "./conversation";
+import { conversationIdFromUrl, isConversationTarget } from "./conversation";
 // A browser host must not reimplement ChatGPT's OAuth client or guess its routes.
 const authHosts = new Set([
   "auth.openai.com", "auth0.openai.com", "accounts.google.com",
@@ -10,6 +10,15 @@ export function isChatConversation(raw: string): boolean {
     return url.origin === "https://chatgpt.com" &&
       (url.pathname === "/" || conversationIdFromUrl(raw) !== null);
   } catch { return false; }
+}
+export function shouldRestoreConversationTarget(
+  raw: string,
+  target: string | null | undefined,
+  locked: boolean,
+  authenticating: boolean,
+  targetChanging: boolean
+): boolean {
+  return locked && !authenticating && !targetChanging && Boolean(target) && !isConversationTarget(raw, target);
 }
 function isHttps(raw: string): boolean {
   try { const u = new URL(raw); return u.protocol === "https:" && !u.username && !u.password; }

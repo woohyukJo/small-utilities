@@ -4,11 +4,12 @@ import path from "node:path";
 import fs from "node:fs";
 import { GuardClient } from "./pipe";
 import { emptyStatus, GateStatus, PageSnapshot } from "./protocol";
-import { NavigationPolicy, isChatConversation } from "./navigation";
+import { NavigationPolicy, isChatConversation, shouldRestoreConversationTarget } from "./navigation";
 import { TurnTracker, TurnEvent } from "./turn-tracker";
 import { readChatPage } from "./page-probe";
 import { canonicalConversationUrl, conversationIdFromUrl, isConversationTarget } from "./conversation";
 import { WindowPresentation, sameBounds } from "./window-presentation";
+import { selectConversationTarget } from "./target-selection";
 
 const smoke = process.argv.includes("--smoke");
 const preview = process.argv.includes("--preview") || smoke;
@@ -45,6 +46,7 @@ let authPageLoaded = false;
 let pendingEvents: TurnEvent[] = [];
 let observationEpoch = 0;
 let targetChanging = false;
+let returningToTarget = false;
 const policy = new NavigationPolicy(false);
 const popups = new Set<BrowserWindow>();
 const shields = new Map<number, { window: BrowserWindow; locked: boolean }>();
@@ -72,15 +74,18 @@ function resetObservation() {
 async function selectTarget(conversationId: string, navigate: boolean) {
   if (preview) throw new Error("미리보기에서는 대화 설정을 저장하지 않습니다.");
   if (targetChanging) throw new Error("대화 설정을 저장하고 있어요. 잠시 후 다시 시도하세요.");
-  if (status.conversationId === conversationId) { error = ""; return; }
   targetChanging = true;
   observationEpoch++;
   try {
-    const next = await client.request<GateStatus>("SetConversationTarget", { conversationId });
-    await updateStatus(next);
+    await selectConversationTarget({
+      currentConversationId: status.conversationId,
+      persist: id => client.request<GateStatus>("SetConversationTarget", { conversationId: id }),
+      applyStatus: updateStatus,
+      currentUrl: () => chat.webContents.getURL(),
+      beforeNavigate: () => { redirectedFrom = null; resetObservation(); },
+      loadUrl: url => chat.webContents.loadURL(url).then(() => undefined)
+    }, conversationId, navigate);
     redirectedFrom = null; error = "";
-    if (navigate && !isConversationTarget(chat.webContents.getURL(), conversationId))
-      await chat.webContents.loadURL(canonicalConversationUrl(conversationId));
   } finally { observationEpoch++; targetChanging = false; }
 }
 
@@ -203,16 +208,18 @@ function layout() {
   if (chatVisible !== visible) { chat.setVisible(visible); chatVisible = visible; }
 }
 async function returnToTarget(url: string) {
-  if (policy.authenticating || !locked() || targetChanging) return;
   const target = status.conversationId;
-  if (!target || isConversationTarget(url, target)) { redirectedFrom = null; return; }
+  if (target && isConversationTarget(url, target)) { redirectedFrom = null; return; }
+  if (!shouldRestoreConversationTarget(url, target, locked(), policy.authenticating, targetChanging) || returningToTarget) return;
   if (redirectedFrom === url) {
     error = "선택한 대화를 아직 열지 못했어요. 로그인 상태나 대화 접근 권한을 확인해 주세요.";
     publish(); return;
   }
   redirectedFrom = url;
   resetObservation();
-  await chat.webContents.loadURL(safeChatUrl());
+  returningToTarget = true;
+  try { await chat.webContents.loadURL(canonicalConversationUrl(target!)); }
+  finally { returningToTarget = false; }
 }
 function restrict(contents: WebContents) {
   const deny = (url: string, frame: boolean) => !policy.authorizeNavigation(url, frame);
@@ -292,11 +299,14 @@ function createChat() {
   });
   chat.webContents.on("unresponsive", () => { error = "대화 화면을 복구하고 있습니다."; publish(); void resetBrowser(); });
   chat.webContents.on("render-process-gone", () => { void resetBrowser(); });
+  chat.webContents.on("did-navigate", async (_event, url) => {
+    if (policy.authenticating) return;
+    await returnToTarget(url).catch(() => { error = "선택한 대화 연결을 다시 시도해 주세요."; publish(); });
+  });
   chat.webContents.on("did-navigate-in-page", async (_event, url, mainFrame) => {
     if (!mainFrame) return;
     if (policy.authenticating) return;
-    if (!policy.allows(url) || isChatConversation(url))
-      await returnToTarget(url).catch(() => { error = "선택한 대화 연결을 다시 시도해 주세요."; publish(); });
+    await returnToTarget(url).catch(() => { error = "선택한 대화 연결을 다시 시도해 주세요."; publish(); });
   });
 }
 async function poll() {

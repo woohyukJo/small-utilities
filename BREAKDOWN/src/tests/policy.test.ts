@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NavigationPolicy } from "../navigation";
+import { NavigationPolicy, shouldRestoreConversationTarget } from "../navigation";
 test("outside sign-in only ChatGPT conversations are available", () => {
   const p = new NavigationPolicy();
   for (const url of ["https://chatgpt.com/", "https://chatgpt.com/c/abc-123"]) assert.ok(p.allows(url));
@@ -59,4 +59,12 @@ test("authentication never launches local files, plaintext or arbitrary protocol
   for (const url of ["file:///C:/Windows", "javascript:alert(1)", "data:text/html,test", "http://example.com/",
     "mailto:a@example.com", "ms-settings:display", "https://user:password@example.com/"])
     assert.equal(p.authorizeNavigation(url), false, url);
+});
+
+test("locked full-page and in-page navigation return to the selected conversation", () => {
+  assert.equal(shouldRestoreConversationTarget("https://chatgpt.com/c/other", "selected", true, false, false), true);
+  assert.equal(shouldRestoreConversationTarget("https://chatgpt.com/", "selected", true, false, false), true);
+  assert.equal(shouldRestoreConversationTarget("https://chatgpt.com/c/selected", "selected", true, false, false), false);
+  assert.equal(shouldRestoreConversationTarget("https://chatgpt.com/c/other", "selected", false, false, false), false);
+  assert.equal(shouldRestoreConversationTarget("https://chatgpt.com/c/other", "selected", true, true, false), false);
 });

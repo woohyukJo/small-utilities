@@ -4,6 +4,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const { GuardClient } = require('../dist/pipe');
+const { selectConversationTarget } = require('../dist/target-selection');
 const targetA = '11111111-2222-4333-8444-555555555555';
 const targetB = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee';
 const pipe = 'BREAKDOWN-Test-' + process.pid;
@@ -20,10 +21,31 @@ const client = new GuardClient(pipe);
       try { await client.request('GetGateStatus'); ready = true; break; } catch { await new Promise(r=>setTimeout(r,200)); }
     }
     assert.ok(ready, 'console service started');
-    assert.equal((await client.request('GetGateStatus')).conversationId, null);
+    const initial = await client.request('GetGateStatus');
+    assert.equal(initial.conversationId, null);
     await assert.rejects(client.request('MarkReady'));
-    const selectedA = await client.request('SetConversationTarget',{conversationId:targetA});
+    let selectedA;
+    const loaded = [];
+    const firstSelection = await selectConversationTarget({
+      currentConversationId: initial.conversationId,
+      persist: conversationId => client.request('SetConversationTarget',{conversationId}),
+      applyStatus: async status => { selectedA = status; },
+      currentUrl: () => 'https://chatgpt.com/',
+      loadUrl: async url => { loaded.push(url); }
+    }, targetA, true);
+    assert.deepEqual(firstSelection,{persisted:true,navigated:true});
+    assert.deepEqual(loaded,['https://chatgpt.com/c/'+targetA]);
     assert.equal(selectedA.conversationId,targetA);
+    loaded.length = 0;
+    const sameSelection = await selectConversationTarget({
+      currentConversationId: selectedA.conversationId,
+      persist: async () => { throw new Error('same target must not be rewritten'); },
+      applyStatus: async () => { throw new Error('same target has no new status'); },
+      currentUrl: () => 'https://chatgpt.com/c/wrong-target',
+      loadUrl: async url => { loaded.push(url); }
+    }, targetA, true);
+    assert.deepEqual(sameSelection,{persisted:false,navigated:true});
+    assert.deepEqual(loaded,['https://chatgpt.com/c/'+targetA]);
     const contextA = {conversationId:targetA, targetRevision:selectedA.targetRevision};
     await client.request('SetPassword', {password:'local-test'});
     await assert.rejects(client.request('MarkReady',{conversationId:targetA}));

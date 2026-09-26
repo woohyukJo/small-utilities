@@ -1,6 +1,6 @@
 {
   "name": "breakdown-desktop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "하루 한 번, ChatGPT와 세 턴.",
   "main": "dist/main.js",
