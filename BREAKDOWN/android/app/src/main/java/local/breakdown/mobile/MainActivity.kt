@@ -4,6 +4,8 @@ import android.app.Activity
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.app.AlertDialog
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.graphics.Color
 import android.os.Bundle
 import android.provider.Settings
@@ -26,6 +28,7 @@ class MainActivity : Activity() {
     private lateinit var selected: TextView
     private lateinit var settingsContainer: ScrollView
     private lateinit var armButton: Button
+    private lateinit var scheduleStatus: TextView
     private var renderedTarget: String? = null
     private var scope = ""
     private var testUser: String? = null
@@ -66,6 +69,12 @@ class MainActivity : Activity() {
             settingsContainer.visibility = View.GONE
         } }
         panel.addView(armButton)
+        scheduleStatus = TextView(this).apply { textSize = 12f }
+        panel.addView(scheduleStatus)
+        panel.addView(button("새벽 4시 자동 시작 설정") {
+            if (Build.VERSION.SDK_INT >= 31) startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                Uri.parse("package:$packageName")))
+        })
         panel.addView(button("같은 Wi-Fi PC 연결") { pairingDialog() })
         settingsContainer = ScrollView(this).apply { addView(panel) }
         root.addView(settingsContainer, LinearLayout.LayoutParams(-1, dp(280)))
@@ -92,6 +101,9 @@ class MainActivity : Activity() {
         selected.text = target?.let { "선택한 대화: ${ChatAddress.url(it)}" } ?: "계속 사용할 대화를 지정하세요."
         progress.text = if (status.armed) "BREAKDOWN  ${status.completedCount} / 3" else "테스트  ${if (status.testReady) 1 else 0} / 1"
         armButton.isEnabled = !status.armed && target != null && status.testReady && repository.hasPassword() && accessibilityEnabled()
+        scheduleStatus.text = if ((application as BreakdownApplication).dailySchedule.exactAllowed())
+            "매일 오전 4시(KST)에 시작 · 화면이 꺼져 있으면 잠금 해제 후 표시" else
+            "정확한 4시 시작을 위해 ‘알람 및 리마인더’를 허용하세요. 미허용 시 시작이 늦어질 수 있어요."
         val turns = repository.engine.persistedState().turns.filter { it.conversationId == target }
         chat.setObservationContext(target, scope,
             turns.filter { it.state == TurnState.PENDING }.map { it.userMessageId },
@@ -102,7 +114,7 @@ class MainActivity : Activity() {
         val id = ChatAddress.conversationId(raw) ?: error("ChatGPT 대화 주소를 입력하거나 대화를 먼저 열어 주세요.")
         val same = repository.engine.status().targetConversationId == id
         if (!same) repository.update { it.selectConversation(id) }
-        if (navigate && !same && ChatAddress.conversationId(chat.currentUrl()) != id) chat.open(ChatAddress.url(id))
+        if (navigate && ChatAddress.conversationId(chat.currentUrl()) != id) chat.open(ChatAddress.url(id))
     }
     private fun openSelected() { chat.open(repository.engine.status().targetConversationId?.let(ChatAddress::url) ?: "https://chatgpt.com/") }
 
@@ -164,7 +176,7 @@ class MainActivity : Activity() {
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
     private fun button(label: String, action: () -> Unit) = Button(this).apply { text = label; textSize = 12f; setOnClickListener { action() } }
     private fun row(parent: LinearLayout, vararg buttons: Button) { parent.addView(LinearLayout(this).apply { buttons.forEach { addView(it, LinearLayout.LayoutParams(0,-2,1f)) } }) }
-    override fun onResume() { super.onResume(); GateAccessibilityService.setAppVisible(true); (application as BreakdownApplication).peerSync.requestSoon(); if (::chat.isInitialized) { chat.resumeObservation(); render() } }
+    override fun onResume() { super.onResume(); GateAccessibilityService.setAppVisible(true); (application as BreakdownApplication).reconcileDay(); (application as BreakdownApplication).peerSync.requestSoon(); if (::chat.isInitialized) { chat.resumeObservation(); render() } }
     override fun onPause() { if (::chat.isInitialized) chat.pauseObservation(); GateAccessibilityService.setAppVisible(false); super.onPause() }
     override fun onDestroy() { repository.unlisten(updateListener); if (::chat.isInitialized) chat.destroyPanel(); super.onDestroy() }
 }

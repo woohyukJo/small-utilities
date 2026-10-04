@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.os.Build
+import android.os.PowerManager
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -28,6 +29,7 @@ class GateAccessibilityService : AccessibilityService() {
 
     interface GateController {
         fun isLocked(): Boolean
+        fun activeDay(): String?
         fun onDeviceUnlocked()
     }
 
@@ -89,6 +91,8 @@ class GateAccessibilityService : AccessibilityService() {
     private var overlayView: View? = null
     private var lastRealForegroundPackage: String? = null
     private var receiverRegistered = false
+    private var openedDay: String? = null
+    private val powerManager by lazy { getSystemService(PowerManager::class.java) }
 
     private val userPresentReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -103,6 +107,7 @@ class GateAccessibilityService : AccessibilityService() {
         super.onServiceConnected()
         liveService = this
         registerUserPresentReceiver()
+        controller?.onDeviceUnlocked()
         refreshGateState()
     }
 
@@ -117,6 +122,9 @@ class GateAccessibilityService : AccessibilityService() {
         if (eventPackage == packageName && !appVisible) return
 
         lastRealForegroundPackage = eventPackage
+        // USER_PRESENT can be missed while the service reconnects. Window transitions
+        // also reconcile the calendar, without reading another application's content.
+        controller?.onDeviceUnlocked()
         refreshGateState()
     }
 
@@ -147,6 +155,11 @@ class GateAccessibilityService : AccessibilityService() {
         val shouldShow = shouldBlock(lastRealForegroundPackage)
         if (shouldShow) {
             showOverlayIfNeeded()
+            val day = controller?.activeDay()
+            if (day != null && openedDay != day) {
+                openedDay = day
+                openBreakdown()
+            }
         } else {
             hideOverlayIfNeeded()
         }
@@ -155,9 +168,10 @@ class GateAccessibilityService : AccessibilityService() {
     private fun shouldBlock(foregroundPackage: String?): Boolean {
         if (controller?.isLocked() != true) return false
         if (appVisible) return false
+        if (!powerManager.isInteractive) return false
 
-        // Never cover the credential/keyguard surface. ACTION_USER_PRESENT will notify the
-        // parent controller after unlock so it can apply its KST04/day semantics.
+        // A 04:00 alarm may advance the day during sleep, but must not wake the display
+        // or cover credentials. The next unlocked foreground window presents the gate.
         if (keyguardManager.isKeyguardLocked || keyguardManager.isDeviceLocked) return false
 
         val pkg = foregroundPackage ?: return false
@@ -215,7 +229,7 @@ class GateAccessibilityService : AccessibilityService() {
             addView(
                 Button(this@GateAccessibilityService).apply {
                     text = "BREAKDOWN 열기"
-                    setOnClickListener { openBreakdownFromUserTap() }
+                    setOnClickListener { openBreakdown() }
                 },
                 FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.WRAP_CONTENT,
@@ -226,10 +240,9 @@ class GateAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun openBreakdownFromUserTap() {
-        // The launch is tied to an explicit user tap on the accessibility overlay. Android's
-        // background-activity-start policy still applies; this service does not repeatedly or
-        // automatically launch activities from accessibility events.
+    private fun openBreakdown() {
+        // Used once per active day and by the overlay button. If Android refuses the
+        // background launch, the button remains available without a repeated launch loop.
         val intent = Intent(this, MainActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
         }

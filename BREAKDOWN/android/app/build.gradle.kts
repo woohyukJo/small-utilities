@@ -11,8 +11,8 @@ android {
         applicationId = "local.breakdown.mobile"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1.0-alpha1"
+        versionCode = 2
+        versionName = "0.1.1-alpha2"
         resValue("string", "app_name", "BREAKDOWN")
     }
     compileOptions {
@@ -33,6 +33,11 @@ android {
             applicationIdSuffix = ".dev"
             versionNameSuffix = "-dev"
             resValue("string", "app_name", "BREAKDOWN 개발용")
+        }
+        create("verification") {
+            initWith(getByName("debug"))
+            applicationIdSuffix = ".verification"
+            resValue("string", "app_name", "BREAKDOWN 자동 검사")
         }
         release {
             isMinifyEnabled = false

@@ -1,0 +1,4 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <instrumentation android:name="local.breakdown.mobile.DailyScheduleProbe"
+        android:targetPackage="${applicationId}" android:label="Daily scheduling integration" />
+</manifest>

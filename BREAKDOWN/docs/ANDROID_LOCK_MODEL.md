@@ -50,7 +50,7 @@ awaitingAssistant      // user turn observed, waiting for completed assistant tu
 emergencyConsecutive   // 0..10
 ```
 
-The gate is **not** activated merely because the wall clock crosses 04:00 while the phone remains in use. It activates on the next unlock/presence transition after the routine-day key advances. While the service is connected, register a receiver for `ACTION_USER_PRESENT` (Android defines it as sent when the user is present after wake/keyguard is gone) and keep a `KeyguardManager`/first-post-unlock event fallback. [ACTION_USER_PRESENT](https://developer.android.com/reference/android/content/Intent#ACTION_USER_PRESENT).
+**Updated 2026-10-05 for Android 0.1.1:** advance the routine day at 04:00 KST using a persistent AlarmManager alarm. Use `SCHEDULE_EXACT_ALARM` when the user grants access; otherwise retain an inexact idle-capable alarm and expose the limitation in settings. Also reconcile the day on application resume, accessibility connection/window events and `ACTION_USER_PRESENT` so a missed event cannot leave an old completed day active indefinitely. Sleeping/keyguard surfaces remain untouched; present the routine after the next unlocked foreground transition. The old unlock-only trigger is superseded. [Alarm scheduling](https://developer.android.com/develop/background-work/services/alarms).
 
 On that unlock:
 
@@ -210,7 +210,7 @@ Implementation notes:
 - Do not use `performGlobalAction(BACK/HOME)` as the primary blocker; it is more race-prone and disruptive than holding a touchable overlay over disallowed app content.
 - If API 34+ display-attached accessibility overlays are used, guard them with `SDK_INT >= 34`; otherwise use the ordinary `TYPE_ACCESSIBILITY_OVERLAY` WindowManager path.
 - Add `SYSTEM_ALERT_WINDOW` only if the team deliberately implements the application-overlay fallback. It is not required by the recommended accessibility-overlay default.
-- Add boot/direct-boot receivers only for a concrete need. They are not required to implement “04:00 KST, apply at next unlock.”
+- A boot/package-replacement/time-change receiver now restores the daily alarm. Direct Boot remains unused: no credential-protected state is accessed before first unlock after reboot.
 
 ## Implementation order
 

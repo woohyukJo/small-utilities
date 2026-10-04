@@ -22,6 +22,9 @@ object GateTime {
     @JvmStatic
     fun dayStart(dayKey: String): Instant =
         LocalDate.parse(dayKey).atTime(DAY_BOUNDARY).atOffset(KST_OFFSET).toInstant()
+
+    /** Always strictly after [at], including a callback delivered exactly at 04:00. */
+    fun nextBoundary(at: Instant): Instant = dayStart(LocalDate.parse(dayKey(at)).plusDays(1).toString())
 }
 
 enum class UnlockReason {
@@ -140,14 +143,14 @@ class GateEngine(persisted: GatePersistentState = GatePersistentState()) {
     }
 
     /**
-     * The platform must call this only for an explicit device unlock/session event. This is the only
-     * post-arm operation that can roll the provisional KST-04 day forward.
+     * Called by the daily alarm and catch-up checks after resume, unlock or service reconnection.
+     * Duplicate callbacks preserve progress; clock rollback cannot recreate an earlier day.
      */
     @Synchronized
     fun onSessionEvent(now: Instant): GateStatus {
         if (!state.armed) return statusUnlocked()
         val nextDay = GateTime.dayKey(now)
-        if (state.activeDayKey != nextDay) {
+        if (state.activeDayKey == null || nextDay > state.activeDayKey!!) {
             state = state.copy(
                 activeDayKey = nextDay,
                 turns = emptyList(),
