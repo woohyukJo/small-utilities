@@ -19,6 +19,8 @@ app.whenReady().then(async () => {
     const probe = () => chat.webContents.executeJavaScriptInIsolatedWorld(987, [{code:"(" + readChatPage.toString() + ")()"}]) as Promise<PageSnapshot>;
     const tracker = new TurnTracker();
     const first = await probe(); assert.ok(first.composer); tracker.accept(first);
+    await chat.webContents.executeJavaScript('document.body.insertAdjacentHTML("afterbegin",\'<textarea name="prompt-textarea" style="display:none"></textarea>\');');
+    assert.equal((await probe()).composer, true, "hidden mobile textarea must not mask the visible editor");
     await chat.webContents.executeJavaScript('document.querySelector("button").click(); document.getElementById("messages").innerHTML = \'<article data-turn-id="turn1"><div data-message-author-role="user" data-message-id="user1">.</div></article>\';');
     assert.equal(tracker.accept(await probe())[0].type, "submitted");
     await chat.webContents.executeJavaScript('document.getElementById("messages").insertAdjacentHTML("beforeend",\'<article data-turn-id="turn2"><div data-message-author-role="assistant" data-message-id="assistant1">A response</div><button data-testid="copy-turn-action-button">Copy</button></article>\');');
@@ -27,6 +29,13 @@ app.whenReady().then(async () => {
     assert.equal(events[0].type, "completed");
     assert.equal(JSON.stringify(await probe()).includes("A response"), false);
     assert.deepEqual(tracker.accept(await probe()), []);
+    const browserTracker = new TurnTracker([], [], false);
+    browserTracker.accept(await probe());
+    await chat.webContents.executeJavaScript('document.getElementById("messages").insertAdjacentHTML("beforeend",\'<article data-turn="user" data-turn-id="hydrated-user">history</article><article data-turn="assistant" data-turn-id="hydrated-answer"><button data-testid="copy-turn-action-button">Copy</button></article>\');');
+    assert.deepEqual(browserTracker.accept(await probe()), [], "late history hydration is not a browser submission");
+    await chat.webContents.executeJavaScript('document.querySelector("#prompt-textarea").textContent=".";document.querySelector("button").click();document.getElementById("messages").insertAdjacentHTML("beforeend",\'<article data-turn="user" data-turn-id="browser-user">.</article><article data-turn="assistant" data-turn-id="browser-answer"><button data-testid="copy-turn-action-button">Copy</button></article>\');');
+    assert.equal(browserTracker.accept(await probe())[0].type, "submitted");
+    assert.equal(browserTracker.accept(await probe())[0].type, "completed");
     // Current outer-turn markup variant must work without a message-author-role descendant.
     await chat.webContents.executeJavaScript('document.getElementById("messages").innerHTML = \'<article data-testid="conversation-turn-1" data-turn="user" data-turn-id="stable-user">.</article><article data-testid="conversation-turn-2" data-turn="assistant" data-turn-id="stable-answer"><p>Answer</p><button data-testid="copy-turn-action-button">Copy</button></article>\';');
     const modern = await probe();

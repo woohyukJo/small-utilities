@@ -10,6 +10,8 @@ export function readChatPage() {
     'textarea[name="prompt-textarea"]'
   ].join(',');
   const visible = (element: Element | null) => Boolean(element && element.getClientRects().length);
+  // ChatGPT renders a hidden textarea before the visible rich-text composer on mobile.
+  const composer = () => [...document.querySelectorAll(composerSelector)].find(visible);
   const roleIdentity = (role: "user" | "assistant", raw: string) => {
     const prefix = role === "user" ? "u_" : "a_";
     const direct = prefix + raw;
@@ -95,7 +97,7 @@ export function readChatPage() {
     const isComposer = (target: EventTarget | null) =>
       target instanceof Element && Boolean(target.closest(composerSelector));
     const hasInput = () => {
-      const input = document.querySelector(composerSelector);
+      const input = composer();
       return Boolean(input && ((input instanceof HTMLTextAreaElement ? input.value : input.textContent) ?? "").trim());
     };
     document.addEventListener("keydown", event => {
@@ -118,7 +120,7 @@ export function readChatPage() {
   const messages = readMessages().map(message => ({ ...message, complete: message.complete && !generating }));
   return {
     conversationId: /\/c\/([a-zA-Z0-9-]+)\/?$/.exec(location.pathname)?.[1] ?? null,
-    composer: visible(document.querySelector(composerSelector)),
+    composer: Boolean(composer()),
     generating, submitSerial: root.__breakdownProbe.submit, stopSerial: root.__breakdownProbe.stop,
     retrySerial: root.__breakdownProbe.retry, submissionBaseline: root.__breakdownProbe.baseline, messages
   };

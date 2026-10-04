@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <application>
+        <activity android:name="local.breakdown.mobile.BrowserBridgeActivity" android:exported="true" />
+        <service android:name="local.breakdown.mobile.BrowserProbeService" android:exported="false" android:foregroundServiceType="specialUse">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE" android:value="User initiated local Firefox turn-counter integration test, with no message contents or remote server." />
+        </service>
+    </application>
     <instrumentation android:name="local.breakdown.mobile.DailyScheduleProbe"
         android:targetPackage="${applicationId}" android:label="Daily scheduling integration" />
 </manifest>

@@ -17,7 +17,7 @@ export class TurnTracker {
   private submissionBaseline = new Set<string>();
   private lastUserId: string | null = null;
   private stable = new Map<string, number>();
-  constructor(resumePending: string[] = [], resumeAborted: string[] = []) {
+  constructor(resumePending: string[] = [], resumeAborted: string[] = [], private allowImplicitSubmission = true) {
     resumePending.forEach(id => this.pending.add(id)); resumeAborted.forEach(id => this.aborted.add(id));
   }
   accept(snapshot: PageSnapshot): TurnEvent[] {
@@ -53,7 +53,7 @@ export class TurnTracker {
     // An appended user turn is authoritative even if React, IME, voice input or
     // a changed send button prevented the keyboard/click hook from firing.
     // Prepending/remounting history does not move beyond this known tail.
-    if (!this.awaitingSubmission && previousTail >= 0) {
+    if (this.allowImplicitSubmission && !this.awaitingSubmission && previousTail >= 0) {
       for (const message of users.slice(previousTail + 1)) {
         if (this.seen.has(message.id)) continue;
         this.pending.add(message.id);
