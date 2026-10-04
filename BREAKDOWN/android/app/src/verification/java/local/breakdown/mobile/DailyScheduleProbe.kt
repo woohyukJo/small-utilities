@@ -14,11 +14,13 @@ class DailyScheduleProbe : Instrumentation() {
     override fun onCreate(arguments: Bundle?) { super.onCreate(arguments); start() }
     override fun onStart() {
         try {
+            waitForIdleSync()
             check(targetContext.packageName.endsWith(".verification"))
             val app = targetContext.applicationContext as BreakdownApplication
             val now = Instant.now()
             val yesterday = now.minusSeconds(86400)
             runOnMainSync {
+                app.gate.setRoutineEnabled(true)
                 app.gate.update {
                     it.selectConversation("schedule-fixture")
                     val revision = it.status().targetRevision

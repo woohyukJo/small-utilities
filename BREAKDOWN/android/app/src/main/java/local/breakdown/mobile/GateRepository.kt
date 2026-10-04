@@ -19,6 +19,15 @@ class GateRepository(context: Context) {
     fun listen(listener: () -> Unit) { listeners.add(listener) }
     fun unlisten(listener: () -> Unit) { listeners.remove(listener) }
     fun hasPassword(): Boolean = preferences.contains("passwordHash")
+    // Firefox integration requires an explicit start; upgrading never silently re-enables a gate.
+    fun routineEnabled(): Boolean = preferences.getBoolean("firefox.routineEnabled", false)
+    fun setRoutineEnabled(enabled: Boolean) {
+        check(preferences.edit().putBoolean("firefox.routineEnabled", enabled).commit())
+        listeners.toList().forEach { it() }
+    }
+    fun browserToken(): String = preferences.getString("firefox.token", null) ?: ByteArray(32)
+        .also { SecureRandom().nextBytes(it) }.joinToString("") { "%02x".format(it) }
+        .also { check(preferences.edit().putString("firefox.token", it).commit()) }
     fun peerConfiguration(): String? = preferences.getString("peer.config", null)
     fun setPeerConfiguration(raw: String?) {
         check(preferences.edit().putString("peer.config", raw).commit())

@@ -9,4 +9,6 @@
     </application>
     <instrumentation android:name="local.breakdown.mobile.DailyScheduleProbe"
         android:targetPackage="${applicationId}" android:label="Daily scheduling integration" />
+    <instrumentation android:name="local.breakdown.mobile.BrowserIntegrationProbe"
+        android:targetPackage="${applicationId}" android:label="Firefox bridge integration" />
 </manifest>

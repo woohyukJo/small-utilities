@@ -1,6 +1,9 @@
 "use strict";
 const endpoint = "http://127.0.0.1:18432";
 globalThis.breakdownDiagnostics = {};
+const navigation = new globalThis.BreakdownNavigation();
+let latestState = null;
+let controlling = false;
 async function request(route, payload = {}, overrideKey) {
   const {key} = await browser.storage.local.get("key");
   const token = overrideKey || key;
@@ -30,6 +33,7 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
       const s = message.summary;
       globalThis.breakdownDiagnostics.detection = {composer: !!s.composer, generating: !!s.generating,
         users: Number(s.users), assistants: Number(s.assistants), complete: Number(s.complete), pending: Number(s.pending)};
+      if (s.composer) navigation.signInComplete(sender.tab.id);
       return {};
     }
     if (message.type === "state") return {state: await request("/v1/state")};
@@ -45,6 +49,27 @@ browser.runtime.onMessage.addListener(async (message, sender) => {
     throw new Error("Unknown request");
   } catch (error) { return {error: error.message}; }
 });
+async function enforce(tab, state) {
+  if (tab?.url && navigation.shouldRestore(tab.url, state.conversationId, state.locked, tab.id))
+    await browser.tabs.update(tab.id, {url: "https://chatgpt.com/c/" + encodeURIComponent(state.conversationId)});
+}
+async function control() {
+  if (controlling) return;
+  controlling = true;
+  try {
+    latestState = await request("/v1/state", {browserReady: true});
+    const [tab] = await browser.tabs.query({active: true, currentWindow: true});
+    await enforce(tab, latestState);
+  } catch (_) { latestState = null; }
+  finally { controlling = false; }
+}
+browser.tabs.onUpdated.addListener((tabId, change, tab) => {
+  if (change.url && latestState && tab.active) void enforce({...tab,id:tabId,url:change.url}, latestState).catch(()=>{});
+});
+browser.tabs.onActivated.addListener(() => { void control(); });
+browser.tabs.onRemoved.addListener(tabId => navigation.forget(tabId));
+setInterval(control, 2000);
+void control();
 browser.runtime.onInstalled.addListener(async () => {
   for (const tab of await browser.tabs.query({url: "https://chatgpt.com/*"})) {
     await browser.tabs.executeScript(tab.id, {file: "detector.js"}).catch(()=>{});

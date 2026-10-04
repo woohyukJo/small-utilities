@@ -29,6 +29,8 @@ class GateAccessibilityService : AccessibilityService() {
 
     interface GateController {
         fun isLocked(): Boolean
+        fun allowsFirefox(): Boolean
+        fun openRoutine(): Boolean
         fun activeDay(): String?
         fun onDeviceUnlocked()
     }
@@ -52,6 +54,10 @@ class GateAccessibilityService : AccessibilityService() {
             "com.android.permissioncontroller",
             "com.google.android.permissioncontroller",
             "com.samsung.android.permissioncontroller",
+            // Native passkey/account choosers invoked by Firefox sign-in.
+            "com.google.android.gms",
+            "com.samsung.android.samsungpass",
+            "com.samsung.android.authfw",
 
             // Common AOSP / Samsung / Google emergency and phone UI packages.
             "com.android.phone",
@@ -158,7 +164,7 @@ class GateAccessibilityService : AccessibilityService() {
             val day = controller?.activeDay()
             if (day != null && openedDay != day) {
                 openedDay = day
-                openBreakdown()
+                if (controller?.openRoutine() != true) openBreakdown()
             }
         } else {
             hideOverlayIfNeeded()
@@ -176,6 +182,7 @@ class GateAccessibilityService : AccessibilityService() {
 
         val pkg = foregroundPackage ?: return false
         if (pkg == packageName) return false
+        if (pkg == "org.mozilla.firefox" && controller?.allowsFirefox() == true) return false
         if (isAllowedEscapePackage(pkg)) return false
 
         return true

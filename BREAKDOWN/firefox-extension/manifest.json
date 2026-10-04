@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "BREAKDOWN 대화 연결",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "선택한 ChatGPT 대화의 완료된 턴을 이 휴대폰의 BREAKDOWN 앱에 전달합니다.",
   "browser_specific_settings": {
     "gecko": {
@@ -11,7 +11,7 @@
     "gecko_android": {"strict_min_version": "142.0"}
   },
   "permissions": ["storage", "tabs", "http://127.0.0.1/*", "https://chatgpt.com/*"],
-  "background": {"scripts": ["background.js"], "persistent": false},
+  "background": {"scripts": ["policy.js", "background.js"], "persistent": true},
   "content_scripts": [
     {"matches": ["https://chatgpt.com/*"], "js": ["detector.js", "content.js"]},
     {"matches": ["http://127.0.0.1/pair*"], "js": ["pair.js"]}

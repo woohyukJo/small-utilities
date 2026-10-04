@@ -1,10 +1,12 @@
 {
   "name": "browser-dev",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "private": true,
+  "description": "Local Firefox extension development tools",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test ../../scripts/firefox-policy.test.cjs",
+    "lint": "web-ext lint -s ../../firefox-extension --no-config-discovery",
+    "build": "web-ext build -s ../../firefox-extension -a ../../artifacts/firefox --overwrite-dest --no-config-discovery"
   },
   "keywords": [],
   "author": "",
