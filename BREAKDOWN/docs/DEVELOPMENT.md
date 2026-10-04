@@ -6,10 +6,12 @@
 
 ## Windows
 
-기존 데스크톱 개발 폴더는 `C:\Users\woohyuk\Documents\Codex\할일BREAKDOWN`이다.
+현재 Windows 개발 폴더는 `F:\Viveproject\codex\할일BREAKDOWN`이다(2026-10-05 확인). 이전 `C:\Users\woohyuk\Documents\Codex\할일BREAKDOWN` 경로는 현재 실행 경로로 사용하지 않는다.
 이 폴더 자체는 현재 Git 작업 사본이 아니다. 저장소로 옮겼다고 해서 원래 폴더의 변경이 자동 반영되지는 않는다.
 이후 Windows에서 Git으로 직접 개발하려면 저장소를 Windows에도 clone하고 개발 도구를 준비한다.
 원래 폴더에서 계속 수정하는 경우 변경한 소스를 저장소의 BREAKDOWN 폴더에 명시적으로 반영한다.
+
+이번 모바일 작업은 사용자가 기존 WSL 저장소/빌드 환경의 사용을 명시적으로 허용하여 두 경로의 해당 소스를 동기화했다. 새 작업에서 다른 파일시스템을 임의로 탐색하는 일반 허가로 해석하지 않는다.
 
 Windows 서비스와 Electron 설치 패키지의 빌드·시스템 통합 검증은 Windows에서 수행한다.
 프로젝트에 준비된 `.tools/dotnet/dotnet.exe`는 .NET 10 SDK이며, 시스템 기본 dotnet과 다를 수 있다.
