@@ -1,6 +1,6 @@
 # BREAKDOWN Firefox 연결 0.2.0
 
-Android 0.1.2-alpha3부터 Google 패스키로 로그인한 Firefox 대화를 실제 BREAKDOWN 앱에 연결한다. 앱은 4시 예약·일일 상태·접근성 제한·PC 동기화를 맡고, 확장은 대화 감지와 잠금 중 대화 고정을 맡는다. **상시 설치용 Mozilla 서명은 아직 필요하다.** 앱의 ‘Firefox 연결’로 연결한 뒤 ‘하루 한 번 시작’을 눌러 활성화한다. 업데이트만으로 잠금이 켜지지 않는다.
+Android 0.1.2-alpha3부터 Google 패스키로 로그인한 Firefox 대화를 실제 BREAKDOWN 앱에 연결한다. 앱은 4시 예약·일일 상태·접근성 제한·PC 동기화를 맡고, 확장은 대화 감지와 잠금 중 대화 고정을 맡는다. **0.2.0은 2026-10-11 Mozilla 서명과 S26 영구 설치를 완료했다.** 앱의 ‘Firefox 연결’로 연결한 뒤 ‘하루 한 번 시작’을 눌러 활성화한다. 업데이트만으로 잠금이 켜지지 않는다.
 
 ## 구성과 데이터
 
@@ -24,7 +24,9 @@ Android 0.1.2-alpha3부터 Google 패스키로 로그인한 Firefox 대화를 �
 web-ext run -t firefox-android -s <extension-directory> --adb-bin <adb.exe> --adb-port 5038 --adb-device <serial> --firefox-apk org.mozilla.firefox --no-reload
 ```
 
-임시 설치는 Firefox 재시작 뒤 유지되는 배포가 아니다. 일반 Firefox에 상시 설치하려면 Mozilla 서명 절차가 필요하다. 공개 검색에 노출하지 않는 unlisted 배포도 가능하지만, Mozilla 계정/서명과 실제 설치 검증은 아직 진행하지 않았다.
+개발용 임시 설치는 Firefox 재시작 뒤 유지되는 배포가 아니다. 0.2.0의 상시 설치 파일은 Mozilla의 unlisted 채널에서 서명받았다. `artifacts/firefox/breakdown-firefox-0.2.0.xpi`를 휴대폰에 저장한 뒤 Firefox 설정의 ‘파일에서 확장 설치’로 설치한다. 메뉴가 안 보이면 ‘Firefox 정보’에서 로고를 빠르게 5번 눌러 메뉴를 활성화한다. Firefox를 재시작해도 설치와 연결이 유지되는 것을 S26에서 확인했다.
+
+`scripts/sign-firefox.ps1`은 로컬 키의 앞뒤 공백을 제거해 unlisted로 제출한다. 승인 대기로 종료됐다면 다시 제출하지 않고 `node scripts/fetch-firefox-signature.cjs`로 기존 버전 상태를 확인하고 승인된 파일만 받는다. 다운로드의 Mozilla 해시, manifest의 ID/버전, 서명 메타데이터를 확인한다. 종료 코드 2는 승인 대기, 0은 다운로드 완료, 1은 오류다. 키 파일과 도구가 생성한 제출 상태 파일은 Git에서 제외한다.
 
 ## 확인 범위 (2026-10-05)
 
@@ -37,4 +39,4 @@ web-ext run -t firefox-android -s <extension-directory> --adb-bin <adb.exe> --ad
 - 실제 BrowserController를 별도 검사 패키지의 loopback HTTP로 호출해 활성화 전 잠금 꺼짐, 연결 키, 이전 scope 거절, 잘못된 일괄 요청의 무변경, 중복, 중단/재시도, 1→2→3 해제와 저장을 검증했다. Firefox 탐색 정책 3개와 확장 lint도 통과했다.
 - S26에 0.1.2-alpha3-dev를 기존 서명으로 업데이트하고 실제 앱의 `connected=true`, `locked=false`, `count=0`과 대화·비밀번호·PC 연결 설정 유지를 확인했다. 시험 앱은 제거했다.
 
-남은 작업은 영구 확장 서명·설치다. Firefox 재시작 후 연결 복구, 잠금이 켜진 실제 3턴 해제, 자연 경과한 4시와 장기 절전은 아직 실기기에서 검증하지 않았다. 실제 잠금은 켜지 않았다.
+2026-10-11에 사용자가 서명된 확장을 설치했고, 개발자 인터페이스의 `temporarilyInstalled=false`를 Firefox 재시작 전후 확인했다. 재시작 후 실제 앱은 `connected=true`, `locked=false`, `count=0`이었다. 잠금이 켜진 실제 3턴 해제, 자연 경과한 4시와 장기 절전은 아직 실기기에서 검증하지 않았다. 실제 잠금은 켜지 않았다.

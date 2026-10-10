@@ -8,3 +8,5 @@ release/
 artifacts/
 *.user
 src/conversation-target.json
+**/.amo-upload-uuid
+**/.web-extension-id

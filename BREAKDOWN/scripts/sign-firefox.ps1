@@ -12,8 +12,8 @@ $taskOldKey = $env:WEB_EXT_API_KEY
 $taskOldSecret = $env:WEB_EXT_API_SECRET
 try {
     # Environment variables keep signing credentials out of command-line arguments and logs.
-    $env:WEB_EXT_API_KEY = [string]$taskCredentials.apiKey
-    $env:WEB_EXT_API_SECRET = [string]$taskCredentials.apiSecret
+    $env:WEB_EXT_API_KEY = ([string]$taskCredentials.apiKey).Trim()
+    $env:WEB_EXT_API_SECRET = ([string]$taskCredentials.apiSecret).Trim()
     & node $taskCli sign --channel unlisted --source-dir (Join-Path $taskRoot 'firefox-extension') --artifacts-dir (Join-Path $taskRoot 'artifacts\firefox') --approval-timeout 60000 --timeout 60000 --no-input --no-config-discovery
     if ($LASTEXITCODE -ne 0) { throw 'Mozilla signing did not finish. Inspect the non-secret validation result before retrying.' }
 }
